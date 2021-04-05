@@ -123,9 +123,8 @@ t2m_media_mensual_anual <- apply(t2m_media_mensual, c(1,2,3), mean)
 mapa<-map_data("world2") 
 min <- min(t2m_media_mensual_anual, na.rm = T)
 max <- max(t2m_media_mensual_anual, na.rm = T)
-my_fill<-scale_fill_gradient(name=expression(" C"),
-                             high  = "firebrick2", 
-                             low = "royalblue", 
+my_fill<-scale_fill_gradientn(name=expression(" C"),
+                             colours = brewer.pal(9,"YlOrRd"), 
                              limits=c(min,max),
                              na.value = "transparent")
 
