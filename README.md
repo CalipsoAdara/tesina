@@ -1,5 +1,7 @@
-# tesina
+Tesina
 
-# Te debo la descripcion
+Predictability study for temperature and precipitation based of SubX models from Octuber to March in Southamerica
 
-# Funciona el commit desde RStudio? 
+Compute_anomalies.R: Calculates anomalies (run in first) having daily values and climatology 
+
+Compute_ensmean.R: Calculates ensamble mean for each model 
