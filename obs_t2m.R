@@ -43,7 +43,7 @@ for (i in 1:16) {
   year <- 1999:2015
   
   #-----------------------------------------
-  # ABRIR DATOS Y RESTRINGIR REGION
+  # ABRIR DATOS 
   
   # Abro los archivos para T maxima y T minima
   nc_tmax <- nc_open(paste("/pikachu/datos4/Obs/t2m_cpc_daily/tmax.",year[i],".nc",sep = ""))
@@ -60,8 +60,22 @@ for (i in 1:16) {
   # Consigo los datos 
   tmax = ncvar_get(nc_tmax, names(nc_tmax$var))
   tmin = ncvar_get(nc_tmin, names(nc_tmin$var))
+  
+  #------------------------------------------
+  # CALCULO DE PROMEDIOS
+  
+  # Variable temperatura a 2 metros se obtiene como el promedio de Tmax y Tmin
+  t2m = (tmax + tmin)/2
+  
+  # Guardo todo en un array con todas las lon,lat (720x360) para todos los dias (366)
+  # y todos los años (16) 
+  t2m_world[,,,i] <- t2m
 
 }
+
+t2m_world = array(0,c())
+
+
 #----------------------------------------------------------------------------------
 # CALCULOS Y GRAFICOS DE LA TEMPERATURA MEDIA MENSUAL PARA LOS MESES DE OCT A MAR
 # RESTRINGIDOS A SOLO SUDAMERICA (son calculos mas rapidos al tomar solo una region)
