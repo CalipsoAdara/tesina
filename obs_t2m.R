@@ -12,38 +12,71 @@ library("lubridate")  #caoaz no lo uso
 library("dplyr")      #capaz no lo uso
 library("maps")
 library("RColorBrewer")
+
 # Cargo mis funciones
 source("funciones.R")
 
 # Path a donde guardar los archivos
 savepath = "/pikachu/datos4/Obs/t2m_cpc_daily"
+#savepath = "/datos/SubX/hindcast/tassfc/daily/ensmean/"  # NO Pongas /vegeta porque ya estas parada ahi
 
 # Seteo el directorio
 setwd(savepath)
 
 # # Variable a descagar
 # var = "tmin"    # tmax, tmin, otros
-# for (i in 1999:2014) {
-#   
+# for (i in 1999:2015) {
+# 
 #   URL = paste("ftp://ftp2.psl.noaa.gov/Datasets/cpc_global_temp/",var,".",i,".nc",sep = "")
 #   destfile = paste(var,".",i,".nc", sep = "")
-#   
+# 
 #   download.file(url = URL, destfile = destfile)
 # }
 # 
-# 
 
+#----------------------------------------------------------------------------------
+# LECTURA DE LOS DATOS TMAX Y TMIN Y CALCULO DE TPROMEDIO A 2M PARA TODO EL GLOBO
+# Y TODO EL PERIODO SIN RESTRINGIR MESES
+
+for (i in 1:16) {
+  
+  year <- 1999:2015
+  
+  #-----------------------------------------
+  # ABRIR DATOS Y RESTRINGIR REGION
+  
+  # Abro los archivos para T maxima y T minima
+  nc_tmax <- nc_open(paste("/pikachu/datos4/Obs/t2m_cpc_daily/tmax.",year[i],".nc",sep = ""))
+  nc_tmin <- nc_open(paste("/pikachu/datos4/Obs/t2m_cpc_daily/tmin.",year[i],".nc",sep = ""))
+  
+  # Leo dimensiones (mismas para ambas variables)
+  lon <- ncvar_get(nc_tmax, "lon")
+  lat <- ncvar_get(nc_tmax, "lat", verbose = F)
+  t <- ncvar_get(nc_tmax, "time")
+  
+  # Convertir las fechas
+  tiempos = as.Date(t/24, origin = "1900-01-01")
+  
+  # Consigo los datos 
+  tmax = ncvar_get(nc_tmax, names(nc_tmax$var))
+  tmin = ncvar_get(nc_tmin, names(nc_tmin$var))
+
+}
+#----------------------------------------------------------------------------------
+# CALCULOS Y GRAFICOS DE LA TEMPERATURA MEDIA MENSUAL PARA LOS MESES DE OCT A MAR
+# RESTRINGIDOS A SOLO SUDAMERICA (son calculos mas rapidos al tomar solo una region)
 
 # Calculos de Temperatura promedio
 
-# Array vacio para llenar con medias mensuales (6 meses x 15 anios)
-# 120 y 150 son la lon y lat luego de restringir a una region particular
-t2m_media_mensual = array(0,c(120,150,6,15)) 
+# Array vacio para llenar con medias mensuales (6 meses x 16 anios)
+# 130 y 150 son la lon y lat luego de restringir a una region particular
+# (el length de lon_sa y lat_sa que aparecen mas adelante)
+t2m_media_mensual = array(0,c(130,150,6,16)) 
 
 
-for (i in 1:15) {
+for (i in 1:16) {
   
-  year <- 1999:2014
+  year <- 1999:2015
   
   #-----------------------------------------
   # ABRIR DATOS Y RESTRINGIR REGION
@@ -68,7 +101,7 @@ for (i in 1:15) {
   # SUDAMERICA Y DESDE OCTUBRE A MARZO
   oct_mar = which(format(tiempos,"%m")>="10" | format(tiempos, "%m")<="03")
   lat_sa = which(lat<=15 & lat>=-60)
-  lon_sa = which(lon<=330 & lon>=270)
+  lon_sa = which(lon<=330 & lon>=265)
   
   # Restringo datos a los limites
   tmax_sa = tmax[lon_sa,lat_sa,oct_mar]
@@ -153,7 +186,7 @@ for (meses in 1:6) {
     ggtitle(paste("Temperatura Media", "\n", nombre_mes[meses],sep = ""))  +
     theme(plot.title = element_text(hjust = 0.5)) +
     theme_bw()+
-    xlim(270,330) + ylim(-60,15) +
+    xlim(265,330) + ylim(-60,15) +
     xlab("Longitud") + ylab("Latitud") +
     theme(plot.title = element_text(hjust = 0.5))
   
@@ -179,27 +212,46 @@ ggplot(data=data_temp,aes(x=x,y=y)) +
   ggtitle(paste("Temperatura Media", "\n", nombre_mes[meses],sep=""))  +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme_bw()+
-  xlim(270,330) + ylim(-60,15) +
+  xlim(265,330) + ylim(-60,15) +
   xlab("Longitud") + ylab("Latitud") +
   theme(plot.title = element_text(hjust = 0.5))
 #
-barplot(rep(1, 20), axes = FALSE, space = 0, col = rainbow(20))
-
-ncfile = nc_open("/pikachu/datos4/Obs/t2m_cpc_daily/tmax.1999.nc")
-
-lon <- ncvar_get(ncfile, "lon")
-lat <- ncvar_get(ncfile, "lat", verbose = F)
-t <- ncvar_get(ncfile, "time")
-
-names_var = names(ncfile$var)
-tmax = ncvar_get(ncfile, "tmax")
-names_dim = names(ncfile$dim)
-
-# Convertir las fechas
-tiempos = as.Date(t/24, origin = "1900-01-01")
-format(tiempos,"%m")
 
 
-oct_mar = which(format(tiempos,"%m")>="10" | format(tiempos, "%m")<="03")
-lat_sa = which(lat<=15 & lat>=-60)
-lon_sa = which(lon<=330 & lon>=270)
+# Otro grafico de prueba
+
+ggplot() +
+  geom_contour_fill(data = data_temp, aes(x=x,y=y,z=z),breaks = c(-5,0,5,10,15,20,25,30,35)) +
+  
+  scale_fill_distiller(name="ACC",palette="RdBu",direction=-1,
+                       breaks = c(-5,0,5,10,15,20,25,30,35),
+                       limits = c(-5, 35),
+                       guide = guide_colorstrip()) +
+  geom_polygon(data=mapa,aes(x=long ,y=lat, group=group),fill=NA,color="black",size=0.2) +
+  
+  ggtitle(paste("Temperatura Media", "\n", nombre_mes[meses],sep=""))  +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_bw()+
+  xlim(265,330) + ylim(-60,15) +
+  xlab("Longitud") + ylab("Latitud") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  coord_cartesian()
+
+ggplot() +
+  geom_contour_fill(data=data_temp,aes(x, y, z = z),breaks = c(-5,0,5,10,15,20,25,30,35)) +
+  scale_x_longitude(breaks = c(280,300, 320)) +
+  scale_y_latitude(breaks = c(-40,-20,0)) +
+  scale_fill_distiller(name="  C",palette="RdBu",direction=-1,
+                       na.value = "blue",
+                       breaks = c(-5,0,5,10,15,20,25,30,35),
+                       limits = c(-5, 35),
+                       guide = guide_colorstrip(),
+                       oob  = scales::squish) +
+  ggtitle(paste("Temperatura Media", "\n", nombre_mes[meses],sep=""))  +
+  geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+  theme(axis.text=element_text(size=12))+
+  theme(strip.text.x = element_text(size = 12, colour = "black"))+
+  theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+  coord_cartesian()  +
+  theme(plot.title = element_text(hjust = 0.5))
+
