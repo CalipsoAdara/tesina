@@ -38,6 +38,13 @@ setwd(savepath)
 # LECTURA DE LOS DATOS TMAX Y TMIN Y CALCULO DE TPROMEDIO A 2M PARA TODO EL GLOBO
 # Y TODO EL PERIODO SIN RESTRINGIR MESES
 
+# Abro un archivo netcdf cualquiera para obtener las dimensiones y poder crear
+# un array con dichas dimensiones (NOTAR: tmax y tmin == dimensiones)
+
+nc_tmax <- nc_open("/pikachu/datos4/Obs/t2m_cpc_daily/tmax.2000.nc")
+t2m_world = array(0,c(DimNc(nc_tmax),17))
+
+
 for (i in 1:16) {
   
   year <- 1999:2015
@@ -68,12 +75,10 @@ for (i in 1:16) {
   t2m = (tmax + tmin)/2
   
   # Guardo todo en un array con todas las lon,lat (720x360) para todos los dias (366)
-  # y todos los años (16) 
+  # y todos los años (17) 
   t2m_world[,,,i] <- t2m
 
 }
-
-t2m_world = array(0,c())
 
 
 #----------------------------------------------------------------------------------
