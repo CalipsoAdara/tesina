@@ -1,5 +1,9 @@
-# Funciones
+# F U N C I O N E S 
 
+#-----------------------------------------------------------------------------------------
+p <- function(..., sep='') {
+  paste(..., sep=sep, collapse=sep)
+}
 
 # -----------------------------------------------------------------------------------------
 # Funcion que obtiene las dimensiones de un archivo netcdf y devuelve un vector con dichas
