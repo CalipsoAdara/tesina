@@ -105,7 +105,7 @@ for(iyr in syr:eyr){
           # Save date
           sttdate=c(sttdate,as.Date(paste0(yyyy,'-',mm,'-',dd)))
         } #endif first start date
-        
+      
         # Put data on array
         data_all[,,,i]=data[[1]]
         rm(data)

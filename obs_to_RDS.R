@@ -12,6 +12,7 @@ library("metR")
 library("abind")
 library("fields")
 library("data.table")
+library("plyr")
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
@@ -122,7 +123,7 @@ tiempos_total <- tiempos_total[-1]
 # ANIOS BISIESTOS
 
 # Renombrar la dimension de tiempo
-dimnames(t2m_sa_years) <- 
+
 dimnames(t2m_sa_years)[[3]] <- tiempos_total
 
 # Sigo trabajando con el array
@@ -171,9 +172,9 @@ dimnames(clim) = list(lon = dimnames(obs)$lon , lat = dimnames(obs)$lat, monday 
 
 
 # Listo, ahora seguiría hacer las data tables, darle merge usando "monday,lat y lon" y después hacer la resta
-
-dt.clim=as.data.table(clim)
-dt.obs=as.data.table(t2m_sa_years)
+# Aca es necesario que se mantengan los NaN para conservar las dimensiones
+dt.clim=as.data.table(clim, na.rm = F)
+dt.obs=as.data.table(t2m_sa_years, na.rm = F)
 
 # renombro variable
 setnames(dt.clim, "value", "clim")
