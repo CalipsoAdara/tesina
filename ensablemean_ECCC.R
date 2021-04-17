@@ -138,7 +138,7 @@ dt.model$week[(dt.model$L>=29)]=99
 # Ahora que ya armé la variable "week" en función de los lead, y la variable "targetdate" usando L y startdate, puedo eliminar la variable L si quisiera
 
 # Cargo observaciones, debería convertirlas en data table con lat, lon y (target)date y luego merge con los pronósticos
-dt.anom = readRDS("t2manom_NOAA.rds")
+dt.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
 
 dt.verif=merge(dt.model,dt.anom,by=c("lat","lon","targetdate"))
 dt.verif$startmonth=month(dt.verif$startdate)
