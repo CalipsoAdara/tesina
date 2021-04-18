@@ -50,7 +50,7 @@ GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta){
   
   # Grafico en si 
   ggplot() +
-    geom_contour_fill(data=data,aes(x, y, z = z),breaks = Breaks) +
+    geom_contour_fill(data=Data,aes(x, y, z = z),breaks = Breaks) +
     scale_x_longitude(breaks = c(280,300, 320)) +
     scale_y_latitude(breaks = c(-40,-20,0)) +
     scale_fill_distiller(name=Label,palette=Paleta,direction=-1,
@@ -95,15 +95,15 @@ GraphDiscrete2 <- function(Data, Breaks, Titulo, Label, Paleta){
   max <- max(Data$z, na.rm = T)
 
   ggplot() +
-    geom_contour_fill(data = data, aes(x=x,y=y,z=z),breaks = Breaks) +
+    geom_contour_fill(data = Data, aes(x=x,y=y,z=z),breaks = Breaks) +
   
     scale_fill_distiller(name=Label,palette=Paleta,direction=-1,
                        breaks = Breaks,
                        limits = c(min(Breaks), max(Breaks)),
                        guide = guide_colorstrip()) +
     geom_polygon(data=mapa,aes(x=long ,y=lat, group=group),fill=NA,color="black",size=0.2) +
-    scale_x_longitude(breaks = c(280,300, 320)) +
-    scale_y_latitude(breaks = c(-40,-20,0)) +
+    #scale_x_longitude(breaks = c(280,300, 320)) +
+    #scale_y_latitude(breaks = c(-40,-20,0)) +
     ggtitle(Titulo)  +
     theme(plot.title = element_text(hjust = 0.5)) +
     theme_bw()+

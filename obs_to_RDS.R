@@ -176,6 +176,11 @@ dimnames(clim) = list(lon = dimnames(obs)$lon , lat = dimnames(obs)$lat, monday 
 dt.clim=as.data.table(clim, na.rm = F)
 dt.obs=as.data.table(t2m_sa_years, na.rm = F)
 
+
+# Esta sentencia ordena de manera correcta las latitudes que generaba problemas al incluir negativos
+dt.clim = dt.clim[order(match(lat, as.numeric(dimnames(obs)$lat)))]
+dt.obs = dt.obs[order(match(lat, as.numeric(dimnames(obs)$lat)))]
+
 # renombro variable
 setnames(dt.clim, "value", "clim")
 
@@ -200,15 +205,77 @@ dt.anom$lon=as.numeric(dt.anom$lon)
 dt.anom$lat=as.numeric(dt.anom$lat)
 dt.anom$targetdate=as.Date(dt.anom$targetdate)
 
+# Esta sentencia ordena de manera correcta las latitudes que generaba problemas al incluir negativos
+dt.anom = dt.anom[order(match(lat, as.numeric(dimnames(obs)$lat)))]
+
 # Guardo la data table de las observaciones
 saveRDS(dt.anom, file = "t2manom_NOAA.rds")
 
 #end
 
 
+# ---------------------------------------------------------------------------------------------
+# Graficos
+
+# Reordeno los datos para graficar solo las medias mensuales desde Octubre a Marzo
+## IGNORAR ESTO, AUN LO ESTOY TRABAJANDO
+# dt.anom$month <- month(dt.anom$targetdate)
+# dt.anom$year <- format(dt.anom$targetdate,format="%Y")
+# 
+# aggregate(data = dt.anom,anom~month  ,FUN = mean)
+# DF[  , .(sum_no = sum(no), unq_age = unique(age)), by = id]
+# media_month <- dt.anom[  , .(MeanMonth = mean(anom,na.rm = T), lon,lat) , by = c("month","year")]
 
 
+# Uso el reordenamiento que usaba hasta ahora
 
+for (s in 1:6) {
+  meses <- c(1, 2, 3, 10, 11, 12)                   # Meses Octubre a Marzo
+  month <- month(tiempos_total)                     # Vector con "01","02" repetidos segun la cant de dias
+  
+  # Tomo los valores de t2m para un solo mes por vez
+  mes <- which(month == meses[s])                   # Vector con Indices del mes en cuestion
+  t2m_mes <- t2m_sa_years[,,mes]                    # Evaluo en todas lat y lon para ese mes
+  media_mensual <- apply(t2m_mes, c(1,2), mean)     # Calculo Media Mensual
+  
+  # Uso esta variable para graficar
+  
+  nombre_mes <- c("Enero", "Febrero", "Marzo", "Octubre", "Noviembre", "Diciembre")
+  valores <- as.vector(media_mensual)
+  
+  # Obtengo las dimensiones necesarias
+  # Convertirlo a numeric porque sino se generan problemas
+  x <- as.numeric(dimnames(obs)$lon)
+  y <- as.numeric(dimnames(obs)$lat)
+  
+  
+  # Creo los data frames necesarios
+  # En la primer columna tiene todas las long repetidas la cantidad de veces de las latitudes
+  # En la segunda columna tiene todas las lat repetidas la cantidad de veces de las longitudes
+  # En la tercera columna tiene los valores de media mensual para 1 mes en particular
+  data_temp<-data.frame(x=rep(x,length(y)),
+                        y=rep(y,each=length(x)),
+                        z=valores)
+
+  
+  # Grafico 
+  GraphDiscrete(Data = data_temp,
+                Breaks = seq(-5,35,5),
+                Titulo = p("T2M Media", "\n",nombre_mes[s]), 
+                Label = "  C", 
+                Paleta = "RdBu")
+  
+  ggsave(filename = p("t2mMedia_",nombre_mes[s],".png"), path = "/home/lucia.castro/tesina/imagenes/")
+  
+  GraphDiscrete2(Data = data_temp,
+                Breaks = seq(-5,35,5),
+                Titulo = p("T2M Media", "\n",nombre_mes[s]), 
+                Label = "  C", 
+                Paleta = "RdBu")
+  
+  ggsave(filename = p("t2mMedia_",nombre_mes[s],"_2",".png"), path = "/home/lucia.castro/tesina/imagenes/")
+}
+ 
 
 
 
