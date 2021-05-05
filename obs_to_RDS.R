@@ -30,7 +30,7 @@ setwd(savepath)
 
 
 # Hago una variable para llenar con todas las fechas diarias desde 1999 hasta 2015
-# 5 anios bisiestos, 12 anios no bisiestos 
+# 4 anios bisiestos, 13 anios no bisiestos 
 tiempos_total <- array()
 t2m_sa_years <- array(NA, c(66,76))
 
@@ -67,8 +67,14 @@ for (i in 1:17) {
   tmax_sa = tmax[lon_sa,lat_sa,]
   tmin_sa = tmin[lon_sa,lat_sa,]
   
+  # missig value -9.96921e+36
+  
   # Variable temperatura a 2 metros se obtiene como el promedio de Tmax y Tmin
   t2m = (tmax_sa + tmin_sa)/2
+  
+  # Cierro los archivos nc
+  nc_close(nc_tmax)
+  nc_close(nc_tmin)
   
   #------------------------------------------------------------------
   # INTERPOLACION
@@ -191,6 +197,10 @@ setnames(dt.obs, "value", "t2m")
 dt.anom=merge(dt.obs,dt.clim,by=c("lon","lat","monday"))
 dt.anom$anom=dt.anom$t2m-dt.anom$clim
 
+# Esta sentencia ordena de manera correcta las latitudes que generaba problemas al incluir negativos
+dt.anom = dt.anom[order(match(lat, as.numeric(dimnames(obs)$lat)))]
+dt.anom = dt.anom[order(match(dia, dt.obs$dia))]
+
 # Elimino las columnas de obs y climatología y esas data tables
 dt.anom$t2m=NULL
 dt.anom$clim=NULL
@@ -205,12 +215,18 @@ dt.anom$lon=as.numeric(dt.anom$lon)
 dt.anom$lat=as.numeric(dt.anom$lat)
 dt.anom$targetdate=as.Date(dt.anom$targetdate)
 
-# Esta sentencia ordena de manera correcta las latitudes que generaba problemas al incluir negativos
-dt.anom = dt.anom[order(match(lat, as.numeric(dimnames(obs)$lat)))]
+####
+lon = unique(dt.anom$lon)
+lat = unique(dt.anom$lat)
+
+# Este array es de 237 Mb, la data table es de 1 GB
+array.anom <- array(dt.anom$anom, dim = c(length(lon), length(lat), length(tiempos_total)))
+dimnames(array.anom) <- list("lon" = lon , "lat" = lat , "day" = as.character(tiempos_total))
+
 
 # Guardo la data table de las observaciones
-saveRDS(dt.anom, file = "t2manom_NOAA.rds")
-
+saveRDS(array.anom, file = "t2manom_NOAA.rds")
+saveRDS(dt.anom ,file = "t2manom_data.table_NOAA.rds")
 #end
 
 
@@ -226,6 +242,27 @@ saveRDS(dt.anom, file = "t2manom_NOAA.rds")
 # DF[  , .(sum_no = sum(no), unq_age = unique(age)), by = id]
 # media_month <- dt.anom[  , .(MeanMonth = mean(anom,na.rm = T), lon,lat) , by = c("month","year")]
 
+# Aca lei los datos por no correrlo todo seguido (ignorar la sentencia)
+dt.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
+
+
+
+setDT(tmeasmax)[, .(MontlyMeans = mean(MEAN.C.)), by = .(year(TIMESTEP), month(TIMESTEP))]
+dt.anom[,.(MonthMean = mean(anom), by = .(format(targetdate,"%Y"), months(targetdate)))]
+
+dt.anom$mes <- month(dt.anom$targetdate)
+
+# Creo estas columnas para calcular la media mensual
+dt.anom$mesdia = substr(as.character(dt.anom$targetdate),6,10)
+dt.anom$year = substr(as.character(dt.anom$targetdate),1,4)
+
+dt.anom[,.(mediamensual= mean(anom), by = .(mesdia,year))]
+
+# Seteo una key para realizar los procesos mas rapidos
+setkey(dt.anom, mesdia)
+# Ahora cuando aplico el filtro no es necesario indicar la columna en la que aplicar el filtro
+enero <- dt.anom[J(1)]
+dia <- dt.anom[c("01-01")]
 
 # Uso el reordenamiento que usaba hasta ahora
 

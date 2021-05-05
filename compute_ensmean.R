@@ -58,6 +58,7 @@ emvarname='tasem'
 #  Main Program  
 #---------------------------------------------------------------------------------------
 
+#for(imodel in 1:nmodels){
 for(imodel in 1:nmodels){
   # Define the model and group and consequent start/end year, leads and ensemble numbers
   model=models[imodel]
@@ -134,9 +135,8 @@ for(imodel in 1:nmodels){
           } # endif (file of data exists)
           
         } # end ensemble members (iens)
-        
         # Evaluate again existence of file of anomalies in that date in order to save (avoid saving ncs in other dates)
-        if(file.exists(inFname)){
+        if(file.exists(inFname) & (sum(is.na(data[[1]]))!=prod(size(data[[1]]))) ){
           # Compute ensemble mean
           ensmean=apply(data_members,c(1,2,3),mean,na.rm=TRUE)
           
@@ -146,14 +146,14 @@ for(imodel in 1:nmodels){
           # Write Data
           fprintf('%s%s\n','Writing File: ',ofname)
           #0. Retrieve dimensions
-          units=ncid$var$rlut$units
-          fillValue=ncid$var$rlut$missval
+          units=ncid$var$tassa$units
+          fillValue=ncid$var$tassa$missval
           #1. Define dimensions
           londim <- ncdim_def("X",ncid$dim$X$units,as.double(ncid$dim$X$vals)) 
           latdim <- ncdim_def("Y",ncid$dim$Y$units,as.double(ncid$dim$Y$vals)) 
           timedim <- ncdim_def("L",ncid$dim$L$units,as.double(ncid$dim$L$vals))
           # 2. Define variables
-          var_def <- ncvar_def(emvarname,ncid$var$tassa$units,list(londim,latdim,timedim),fillValue,longname="tas anomaly ensemble mean",prec="float")
+          var_def <- ncvar_def(emvarname,ncid$var$tassa$units,list(londim,latdim,timedim),fillValue,longname="rlut anomaly ensemble mean",prec="float")
           # Create netCDF file and put arrays
           ncout <- nc_create(ofname,list(var_def),force_v4=TRUE)
           # Put variables
@@ -178,3 +178,4 @@ for(imodel in 1:nmodels){
   } # end years
   
 } # end imodel
+              
