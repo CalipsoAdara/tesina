@@ -13,6 +13,7 @@ library("abind")
 library("fields")
 library("data.table")
 library("plyr")
+library("data.cube")
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
@@ -67,7 +68,7 @@ for (i in 1:17) {
   tmax_sa = tmax[lon_sa,lat_sa,]
   tmin_sa = tmin[lon_sa,lat_sa,]
   
-  # missig value -9.96921e+36
+  # missig value -9.96921e+36  which(tmin==-9.96921e+36)
   
   # Variable temperatura a 2 metros se obtiene como el promedio de Tmax y Tmin
   t2m = (tmax_sa + tmin_sa)/2
@@ -174,7 +175,7 @@ clim[,,60]=(smoothclim[,,59]+smoothclim[,,60])/2 #28/2+1/3
 clim[,,61:366]=smoothclim[,,60:365]
 
 rm("climday","climdayperiodic","smoothclim")
-dimnames(clim) = list(lon = dimnames(obs)$lon , lat = dimnames(obs)$lat, monday = substr(tiempos_total[(1+365*2):(365*3+1)],6,10))
+dimnames(clim) = list(lon = dimnames(obs)$lon , lat = dimnames(obs)$lat, monday = substr(tiempos_total[(1+365):(365*2+1)],6,10))
 
 
 # Listo, ahora seguiría hacer las data tables, darle merge usando "monday,lat y lon" y después hacer la resta
@@ -189,6 +190,8 @@ dt.obs = dt.obs[order(match(lat, as.numeric(dimnames(obs)$lat)))]
 
 # renombro variable
 setnames(dt.clim, "value", "clim")
+# Guardo la data table de las observaciones
+saveRDS(dt.clim, file = "t2mclim_NOAA.rds")
 
 # Agrego la dimension "monday" a dt.obs
 dt.obs$monday=substr(as.character(dt.obs$dia),6,10)
@@ -235,15 +238,14 @@ saveRDS(dt.anom ,file = "t2manom_data.table_NOAA.rds")
 
 # Reordeno los datos para graficar solo las medias mensuales desde Octubre a Marzo
 ## IGNORAR ESTO, AUN LO ESTOY TRABAJANDO
-# dt.anom$month <- month(dt.anom$targetdate)
-# dt.anom$year <- format(dt.anom$targetdate,format="%Y")
+# Graficos de anomalia semanal media para comparar con los graficos de NOAA PSL
+# https://psl.noaa.gov/data/composites/day/
+# Lucia M. Castro 
 # 
-# aggregate(data = dt.anom,anom~month  ,FUN = mean)
-# DF[  , .(sum_no = sum(no), unq_age = unique(age)), by = id]
-# media_month <- dt.anom[  , .(MeanMonth = mean(anom,na.rm = T), lon,lat) , by = c("month","year")]
+
 
 # Aca lei los datos por no correrlo todo seguido (ignorar la sentencia)
-dt.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
+ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
 
 
 
@@ -313,8 +315,6 @@ for (s in 1:6) {
   ggsave(filename = p("t2mMedia_",nombre_mes[s],"_2",".png"), path = "/home/lucia.castro/tesina/imagenes/")
 }
  
-
-
 
 
 

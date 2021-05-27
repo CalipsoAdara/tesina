@@ -153,4 +153,9 @@ for (lon in 1:66) {
 
 rc <- 2.33/sqrt(612-2)
 
+# Pruebo colocar datos en array a partir de data.table
+ar <- array(1:72,dim=c(72,1))
+dimnames(ar) <- list("lon","lat")
+dt<- data.table(ar)
 
+ar2<- array(dt$V1,dim = c(12,2,3))

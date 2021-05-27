@@ -123,7 +123,37 @@ for (week in 1:4) {
   
 } # End loop week
 
+# Otra forma de calcular la correlacion 
+# r = covariaza/desvio x * desvio y
+acc2 <- array(NA, dim = c(66,76,4))
 
+for (week in 1:4) {
+  for (lon in 1:66) {
+    for (lat in 1:76) {
+    
+      # Me quedo solo con una semana a analizar y todos las fechas de pronostico
+      anom.week <- anom_media_semanal[,,,week]
+      model.week <- model_media_semanal[,,,week]
+      # Me quedo solo con un punto particular y todas las fechas de pronostico
+      observ <- anom.week[lon,lat,]
+      modelo <- model.week[lon,lat,]
+      
+      # Covarianza
+      cova <- cov(observ,modelo,use="pairwise.complete.obs",method = "pearson")
+      # medias
+      media_obs <- sd(observ,na.rm = T)
+      media_mod <- sd(modelo,na.rm = T)
+      
+      # Correlacion
+      coefCorr <- cova/(media_mod*media_obs)
+      
+      acc2[lon,lat,week] <- coefCorr
+      
+    } # End loop lat
+    
+  }  # End loop lon
+  
+} # End loop week
 
 # Renombro dimensiones 
 dimnames(me) <- list(x = dimnames(ar.anom)$lon, 
@@ -140,22 +170,35 @@ dimnames(acc) <- list(x = dimnames(ar.anom)$lon,
                       week = c("Week 1", "Week 2","Week 3", "Week 4"))
 
 # Armo data.frames para graficar
-dt.me <- melt(me, value.name = "z")
-dt.mae <- melt(mae, value.name = "z")
-dt.rmse <- melt(rmse, value.name = "z")
-dt.acc <- melt(acc, value.name = "z")
+dt.me <- reshape2::melt(me, value.name = "z")
+dt.mae <- reshape2::melt(mae, value.name = "z")
+dt.rmse <- reshape2::melt(rmse, value.name = "z")
+dt.acc <- reshape2::melt(acc, value.name = "z")
+dt.acc2 <- reshape2::melt(acc2, value.name = "z")
 
 #---------------------------------------------------------------------------------------
 #  Gráficos  
 #---------------------------------------------------------------------------------------
 g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.5),Label = "rsme",Paleta = "YlOrRd", Direccion = "1")
-g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.5,0.7,0.2), Label = "me",Paleta = "RdBu",Direccion = "-1")
-g3 <- GraphDiscreteMultiple(Data = dt.mae, Breaks = seq(0,3,0.5), Label = "mae",Paleta = "YlOrRd",Direccion = "1")
-g4 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(-1,1,0.2), Label = "ACC",Paleta = "RdBu",Direccion = "-1")
+g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.7,0.7,0.2), Label = "me",Paleta = "RdBu",Direccion = "-1")
+g3 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(0,1,0.1), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
 
 
-
-fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX GMAO-GEOS_V2p1 tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+fig <- grid.arrange(g1,g2,g3, ncol = 1,top = textGrob("SubX GMAO-GEOS_V2p1 tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
 ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_GMAO.png",plot=fig,width = 10, height = 11)
 
 
+
+# Graficos para comparar con los de PSL
+
+x <-as.numeric( dimnames(ar.anom)$lon)
+y <- as.numeric(dimnames(ar.anom)$lat)
+breaks = seq(-6,6,1)
+valores <- as.vector(anom_media_semanal[,,77,1]) #45  77   1   458
+targetdate[,77]
+data_temp <- data.frame(x=rep(x,length(y)),
+                        y=rep(y,each=length(x)),
+                        z=valores)
+
+GraphDiscrete(data_temp, Breaks = breaks, Titulo = "T2M week mean \n 22-28 Ene 2001", Paleta = "RdBu",Label = "°C") 
+ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/meanweak20010122_28.png",)
