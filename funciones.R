@@ -28,7 +28,7 @@ DimNc <- function(nc) {
 # -----------------------------------------------------------------------------------------
 # Funcion para graficar con escalas discretas de colores
 
-GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta){
+GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
   
   ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
   # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
@@ -37,6 +37,7 @@ GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta){
   ## Titulo: character vector con el titulo del grafico
   ## Label: character vector con el titulo para la barra de colores. Ej "Kelvin"
   ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
+  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
   
   # Cargo paquetes
   library("ggplot2")
@@ -53,7 +54,7 @@ GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta){
     geom_contour_fill(data=Data,aes(x, y, z = z),breaks = Breaks) +
     scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
     scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
-    scale_fill_distiller(name=Label,palette=Paleta,direction=-1,
+    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
                          na.value = "transparent",
                          breaks = Breaks,
                          limits = c(min(Breaks), max(Breaks)),
