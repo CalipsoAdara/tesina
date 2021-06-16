@@ -176,3 +176,26 @@ GraphDiscreteMultiple <- function(Data, Breaks, Label, Paleta, Direccion){
     theme(plot.title = element_text(hjust = 0.5))
   
 }
+
+
+#---------------------------------------------------------------------------------------------
+# Funcion que realiza dataframes de longitud, latitud y variable para colocar en la funcion GraphDiscrete
+
+ggDataFrame <- function(Array){
+  ## Array: array con los valores de la variable a dibujar, por ejemplo t2m a dos metros 
+  
+  valores = as.vector(Array)
+  
+  lon = seq(265,330,1)
+  lat = rev(seq(-60,15, 1))
+  
+  # Creo los data frames necesarios
+  # En la primer columna tiene todas las long repetidas la cantidad de veces de las latitudes
+  # En la segunda columna tiene todas las lat repetidas la cantidad de veces de las longitudes
+  # En la tercera columna tiene los valores de media mensual para 1 mes en particular
+  df <-data.frame(x=rep(lon,length(lat)),
+                        y=rep(lat,each=length(lon)),
+                        z=valores)
+  return(df)
+  
+}

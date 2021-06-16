@@ -159,3 +159,28 @@ dimnames(ar) <- list("lon","lat")
 dt<- data.table(ar)
 
 ar2<- array(dt$V1,dim = c(12,2,3))
+
+dt.anom$anom[0:66]
+
+dt.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_data.table_NOAA.rds")
+test=dt.verif[,rlutaem.w:=mean(rlutaem,na.rm=TRUE),by=.(lat,lon,startdate,week)]
+test=dt.anom[,,which(dt.anom$targetdate=="1999-01-01"),]
+semana = c("1999-01-02","1999-01-03","1999-01-04","1999-01-05","1999-01-06","1999-01-07","1999-01-08")
+semana = c("2011-11-08","2011-11-09","2011-11-10","2011-11-11","2011-11-12","2011-11-13","2011-11-14")
+
+test<-which(dt.anom$targetdate %in% semana)
+week1 <- dt.anom[test]
+dimnames(week1)[[2]] <- list("x","y","targetdate","z")
+week1$x <- as.numeric(week1$x)
+week1$y <- as.numeric(week1$y)
+week1.mean <- week1[,anom.w:=mean(z,na.rm = T),by=.(x,y,targetdate)]
+week1.mean=unique(week1.mean, incomparables=FALSE, fromLast=FALSE)
+
+dimnames(week1.mean)[[2]] <- list("x","y","targetdate","anom","z")
+breaks = seq(-6,6,1)
+GraphDiscrete(week1.mean, Breaks = breaks, Titulo = "T2M week mean \n 08-14 Nov 2011", Paleta = "RdBu",Label = "°C") 
+
+
+
+#####################
+

@@ -25,6 +25,8 @@ clim.obs$y= as.numeric(clim.obs$y)
 # Busco los valores solo en mi semana
 week = c("02-12","02-13","02-14","02-15","02-16","02-17","02-18")
 week2 = c("2000-02-12","2000-02-13","2000-02-14","2000-02-15","2000-02-16","2000-02-17","2000-02-18")
+week = c("11-03","11-04","11-05","11-06","11-07","11-08","11-09")
+week2 = c("2001-11-03","2001-11-04","2001-11-05","2001-11-06","2001-11-07","2001-11-08","2001-11-09")
 semana = clim.obs[monday %in% week]
 semana = semana[order(match(monday, week))]
 
@@ -37,12 +39,15 @@ media.obs$z=NULL
 dt.verif.w=unique(media.obs, incomparables=FALSE, fromLast=FALSE)
 dimnames(dt.verif.w)[[2]] <- list("x","y","z")
 GraphDiscrete(Data = dt.verif.w, Titulo = "CLimatologia\nMedia semanal 12-18 Feb \nCPC", Paleta = "RdBu",Label = "°C",Breaks = seq(0,30,5))
+GraphDiscrete(Data = dt.verif.w, Titulo = "CLimatologia\nMedia semanal 03-09 Nov \nCPC", Paleta = "RdBu",Label = "°C",Breaks = seq(0,30,5), Direccion = -1)
 
 # Climatologia del modelo 
 for (n in 1:4) {
   
-  inicio = c("2000-02-05","2000-01-29","2000-01-22","2000-01-15")
-  inicio2 = c("0205","0129","0122","0115")
+  #inicio = c("2000-02-05","2000-01-29","2000-01-22","2000-01-15")
+  #inicio2 = c("0205","0129","0122","0115")
+  inicio = c("2001-10-27","2001-10-20","2001-10-13","2001-10-06")
+  inicio2 = c("1027","1020","1013","1006")
   w = c("Week 1","Week 2","Week 3","Week 4")
   
   # Tomo los sabados anteriores a la semana en cuestion 02-12
@@ -60,8 +65,8 @@ for (n in 1:4) {
   dt.clim.mod$x = as.numeric(dt.clim.mod$x)
   dt.clim.mod$y= as.numeric(dt.clim.mod$y)
   
-  titu = paste0("Climatologia INI",inicio2[n],"\nMedia semanal 12-18 Feb \n GMAO")
-  GraphDiscrete(Data = dt.clim.mod, Titulo = titu, Paleta = "RdBu",Label = "°C",Breaks = seq(273,308,5))
+  titu = paste0("Climatologia INI",inicio2[n],"\nMedia semanal 03-09 Nov \n GMAO")
+  GraphDiscrete(Data = dt.clim.mod, Titulo = titu, Paleta = "RdBu",Label = "°C",Breaks = seq(273,308,5), Direccion = -1)
   ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/MODclim",inicio2[n],"sem1218.png"),width = 10, height = 11)
 }
 
@@ -252,8 +257,10 @@ inDir1=paste0(inPath,varname,plevstr,'/daily/full/',group,'-',model,'/') # input
 # Temperatura a 2 metros del modelo 
 for (n in 1:4) {
   
-  inicio = c("2000-02-05","2000-01-31","2000-01-26","2000-01-16")
-  inicio2 = c("0205","0131","0126","0116")
+  #inicio = c("2000-02-05","2000-01-31","2000-01-26","2000-01-16")
+  #inicio2 = c("0205","0131","0126","0116")
+  inicio = c("2001-10-27","2001-10-20","2001-10-13","2001-10-06")
+  inicio2 = c("1027","1020","1013","1006")
   w = c("Week 1","Week 2","Week 3","Week 4")
   
   # Tomo los sabados anteriores a la semana en cuestion 02-12
@@ -273,7 +280,7 @@ for (n in 1:4) {
   dt.mod$y= as.numeric(dt.mod$y)
   
   titu = paste0("t2m GMAO-GEOS INI",inicio2[n],"\nMedia semanal 12-18 Feb")
-  GraphDiscrete(Data = dt.mod, Titulo = titu, Paleta = "RdBu",Label = "°C",Breaks = seq(0,45,5))
+  GraphDiscrete(Data = dt.mod, Titulo = titu, Paleta = "RdBu",Label = "°C",Breaks = seq(0,45,5),Direccion = 1)
   ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/MODfull",inicio2[n],"sem1218.png"),width = 10, height = 11)
 }
 
@@ -285,50 +292,138 @@ df.prueba$y= as.numeric(df.prueba$y)
 GraphDiscrete(Data = df.prueba, Titulo = titu, Paleta = "RdBu",Label = "°C",Breaks = seq(0,45,5))
 
 # FULL-------------------------------------------------------------------------------------------------------
-inFilename = paste0("./full/GMAO-GEOS_V2p1/tas_sfc_GMAO-GEOS_V2p1_2000",inicio2[n],".e2",".SouthAmerica.daily.nc")
-prueba.mod = metR::ReadNetCDF(inFilename, out="array")
-prueba.mod= prueba.mod[[2]]
-inicio = c("2000-02-05","2000-01-31","2000-01-26","2000-01-16")
+for (w in 1:4) {
+  
+  for (miembro in 1:nenss) {
+    inicio = c("2000-02-05","2000-01-31","2000-01-26","2000-01-16")
+    inicio2 = c("0205","0131","0126","0116")
+    
+    # descargo los datos 
+    inFilename = paste0("./full/GMAO-GEOS_V2p1/tas_sfc_GMAO-GEOS_V2p1_2000",inicio2[w],".e",miembro,".SouthAmerica.daily.nc")
+    mod.full = metR::ReadNetCDF(inFilename, out="array")
+    mod.full= mod.full[[2]]
+    
+    # busco la semana para calcular el promedio semanal
+    fechas = as.character(as.Date(inicio[w]) + (1:45))
+    full.semana = mod.full[,,fechas %in% week2]
+    full.semana.media = apply(full.semana,c(1,2), FUN = mean)
+    
+    # convierto a data frame para graficar
+    df.full = reshape2::melt(full.semana.media,value.name="z")
+    dimnames(df.full)[[2]] <- list("x","y","z")
+    df.full$x = as.numeric(df.full$x)
+    df.full$y= as.numeric(df.full$y)
+    
+    # grafico
+    titu = paste0("FULL T2M INI2000",inicio2[w],"\n media semanal  Feb 12-18" ,"\n Miembro ", miembro )
+    GraphDiscrete(Data = df.full, Titulo = titu, Paleta = "YlOrRd",Label = "°C",Breaks = seq(273,310,5), Direccion = 1)
+    ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/MODfull",inicio2[w],"sem1218.e",miembro,".png"),width = 10, height = 11)
+    
+  } # end loop miembros ensamble
 
-fechas = as.character(as.Date(inicio[1]) + (1:45)) 
-fechas = as.character(as.Date("1999-01-04") + (1:45)) 
-prueba.mod1 = prueba.mod[,,fechas %in% week2]
-prueba.mod1 = apply(prueba.mod1,c(1,2), FUN = mean)
-df.prueba = reshape2::melt(prueba.mod1,value.name="z")
-dimnames(df.prueba)[[2]] <- list("x","y","z")
-df.prueba$x = as.numeric(df.prueba$x)
-df.prueba$y= as.numeric(df.prueba$y)
+} # end loop week
 
-titu = paste0("FULL T2M INI2000",inicio2[n],"\n media semanal  Feb 12-18" ,"\n Miembro 2 ")
-GraphDiscrete(Data = df.prueba, Titulo = titu, Paleta = "YlOrRd",Label = "°C",Breaks = seq(273,310,5), Direccion = 1)
-ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/MODfull",inicio2[n],"sem1218.png"),width = 10, height = 11)
+
 
 # ANOM -----------------------------------------------------------------------------------------------------------
-inFilename = paste0("./anom/GMAO-GEOS_V2p1/tas_sfc_GMAO-GEOS_V2p1_2000",inicio2[n],".e4.anoms.daily.nc")
-prueba.mod = metR::ReadNetCDF(inFilename, out="array")
-prueba.mod= prueba.mod[[1]]
-prueba.mod1 = prueba.mod[,,fechas %in% week2]
-prueba.mod1 = apply(prueba.mod1,c(1,2), FUN = mean)
-df.prueba = reshape2::melt(prueba.mod1,value.name="z")
-dimnames(df.prueba)[[2]] <- list("x","y","z")
-df.prueba$x = as.numeric(df.prueba$x)
-df.prueba$y= as.numeric(df.prueba$y)
+for (w in 1:4) {
+  
+  for (miembro in 1:nenss) {
+    inicio = c("2000-02-05","2000-01-31","2000-01-26","2000-01-16")
+    inicio2 = c("0205","0131","0126","0116")
+    
+    # descargo los datos 
+    inFilename = paste0("./anom/GMAO-GEOS_V2p1/tas_sfc_GMAO-GEOS_V2p1_2000",inicio2[w],".e",miembro,".anoms.daily.nc")
+    mod.anom = metR::ReadNetCDF(inFilename, out="array")
+    mod.anom= mod.anom[[1]]
+    
+    # busco la semana para calcular el promedio semanal
+    fechas = as.character(as.Date(inicio[w]) + (1:45))
+    anom.semana = mod.anom[,,fechas %in% week2]
+    anom.semana.media = apply(anom.semana,c(1,2), FUN = mean)
+    
+    # convierto a data frame para graficar
+    df.anom = reshape2::melt(anom.semana.media,value.name="z")
+    dimnames(df.anom)[[2]] <- list("x","y","z")
+    df.anom$x = as.numeric(df.anom$x)
+    df.anom$y= as.numeric(df.anom$y)
+    
+    # grafico
+    titu = paste0("ANOM T2M INI2000",inicio2[w],"\n media semanal  Feb 12-18" ,"\n Miembro ", miembro )
+    GraphDiscrete(Data = df.anom, Titulo = titu,  Paleta = "RdBu",Label = "°C",Breaks = seq(-6,6,1), Direccion = -1)
+    ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/MODanom",inicio2[w],"sem1218.e",miembro,".png"),width = 10, height = 11)
+    
+  } # end loop miembros ensamble
+  
+} # end loop week
 
-titu = paste0("ANOM T2M INI2000",inicio2[n],"\n media semanal  Feb 12-18" ,"\n Miembro 4 ")
-GraphDiscrete(Data = df.prueba, Titulo = titu, Paleta = "RdBu",Label = "°C",Breaks = seq(-6,6,1), Direccion = -1)
-ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/MODanom",inicio2[n],"sem1218.png"),width = 10, height = 11)
 
 # ENSAMBLE ---------------------------------------------------------------------------------------------------------
-inFilename = paste0("./ensmean2/GMAO-GEOS_V2p1/tas_sfc_GMAO-GEOS_V2p1_2000",inicio2[n],".ensmean.daily.nc")
-prueba.mod = metR::ReadNetCDF(inFilename, out="array")
-prueba.mod= prueba.mod[[1]]
-prueba.mod1 = prueba.mod[,,fechas %in% week2]
-prueba.mod1 = apply(prueba.mod1,c(1,2), FUN = mean)
-df.prueba = reshape2::melt(prueba.mod1,value.name="z")
-dimnames(df.prueba)[[2]] <- list("x","y","z")
-df.prueba$x = as.numeric(df.prueba$x)
-df.prueba$y= as.numeric(df.prueba$y)
 
-titu = paste0("ANOM T2M INI2000",inicio2[n],"\n media semanal  Feb 12-18" ,"\n Media Ensamble ")
-GraphDiscrete(Data = df.prueba, Titulo = titu, Paleta = "RdBu",Label = "°C",Breaks = seq(-6,6,1), Direccion = -1)
-ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/MODensam",inicio2[n],"sem1218.png"),width = 10, height = 11)
+ensamble <- array(NA, dim = c(66,76,4))
+
+for (w in 1:4) {
+
+    inicio = c("2000-02-05","2000-01-31","2000-01-26","2000-01-16")
+    inicio2 = c("0205","0131","0126","0116")
+    
+    # descargo los datos 
+    inFilename = paste0("./ensmean2/GMAO-GEOS_V2p1/tas_sfc_GMAO-GEOS_V2p1_2000",inicio2[w],".ensmean.daily.nc")
+    mod.anom = metR::ReadNetCDF(inFilename, out="array")
+    mod.anom= mod.anom[[1]]
+    
+    # busco la semana para calcular el promedio semanal
+    fechas = as.character(as.Date(inicio[w]) + (1:45))
+    anom.semana = mod.anom[,,fechas %in% week2]
+    anom.semana.media = apply(anom.semana,c(1,2), FUN = mean)
+    
+    # convierto a data frame para graficar
+    df.anom = reshape2::melt(anom.semana.media,value.name="z")
+    dimnames(df.anom)[[2]] <- list("x","y","z")
+    df.anom$x = as.numeric(df.anom$x)
+    df.anom$y= as.numeric(df.anom$y)
+    
+    # grafico
+    titu = paste0("ANOM T2M INI2000",inicio2[w],"\n media semanal  Feb 12-18" ,"\n Media Ensamble ")
+    GraphDiscrete(Data = df.anom, Titulo = titu,  Paleta = "RdBu",Label = "°C",Breaks = seq(-6,6,1), Direccion = -1)
+    ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/MODensam",inicio2[w],"sem1218.png"),width = 10, height = 11)
+    
+    ensamble[,,w] <- anom.semana.media
+
+  } # end loop week
+
+
+
+#-------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------------------------
+# Comparo la media del ensamble de esas fechas con el reanalisis
+obs= readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
+semana12_18 = as.character(periodo) %in% week2
+obs_semana = obs[,,semana12_18]
+obs_semana_media = apply(obs_semana, c(1,2),  FUN = mean)
+
+# Acomodo en data table
+df.obs = reshape2::melt(obs_semana_media,value.name="z")
+dimnames(df.obs)[[2]] <- list("x","y","z")
+df.obs$x = as.numeric(df.obs$x)
+df.obs$y= as.numeric(df.obs$y)
+
+# grafico
+titu = paste0("ANOM T2M NOAA \n media semanal  Feb 12-18")
+GraphDiscrete(Data = df.obs, Titulo = titu,  Paleta = "RdBu",Label = "°C",Breaks = seq(-6,6,1), Direccion = -1)
+ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/OBSsem1218.png"),width = 10, height = 11)
+
+
+# Calculo metricas como rmse
+dif = obs_semana_media - ensamble[,,4]
+rmse = sqrt(apply(dif^2,c(1,2), FUN = mean, na.rm = TRUE))
+# Acomodo en data table
+df.rmse = reshape2::melt(rmse,value.name="z")
+dimnames(df.rmse)[[2]] <- list("x","y","z")
+df.rmse$x = as.numeric(df.rmse$x)
+df.rmse$y= as.numeric(df.rmse$y)
+
+# grafico
+titu = paste0("RSME WEEK 4 \n media semanal  Feb 12-18")
+GraphDiscrete(Data = df.rmse, Titulo = titu,  Paleta = "YlOrRd",Label = "rmse",Breaks = seq(0,5,1), Direccion = 1)
+ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/RMSEweek4.png"),width = 10, height = 11)

@@ -13,7 +13,7 @@ library("abind")
 library("fields")
 library("data.table")
 library("plyr")
-library("data.cube")
+#library("data.cube")
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
@@ -32,7 +32,6 @@ setwd(savepath)
 
 # Hago una variable para llenar con todas las fechas diarias desde 1999 hasta 2015
 # 4 anios bisiestos, 13 anios no bisiestos 
-tiempos_total <- array()
 t2m_sa_years <- array(NA, c(66,76))
 
 for (i in 1:17) {
@@ -43,39 +42,26 @@ for (i in 1:17) {
   # ABRIR DATOS 
   
   # Abro los archivos para T maxima y T minima
-  inFname_max <- paste("./tmax.",year[i],".nc",sep = "")
-  inFname_min <- paste("./tmin.",year[i],".nc",sep = "")
-  nc_tmax <- nc_open(paste("/pikachu/datos4/Obs/t2m_cpc_daily/tmax.",year[i],".nc",sep = ""))
-  nc_tmin <- nc_open(paste("/pikachu/datos4/Obs/t2m_cpc_daily/tmin.",year[i],".nc",sep = ""))
+  nc_path_max=paste0("/pikachu/datos4/Obs/t2m_cpc_daily/tmax.",year[i],".nc")
+  nc_path_min=paste0("/pikachu/datos4/Obs/t2m_cpc_daily/tmin.",year[i],".nc")
   
-  # Leo dimensiones (mismas para ambas variables)
-  lon <- ncvar_get(nc_tmax, "lon")
-  lat <- ncvar_get(nc_tmax, "lat", verbose = F)
-  t <- ncvar_get(nc_tmax, "time")
-  
-  # Convertir las fechas
-  tiempos = as.character(as.Date(t/24, origin = "1900-01-01"))
-  
-  # Me quedo con los datos de mi region 
-  lat_sa = which(lat<=15 & lat>=-60)
-  lon_sa = which(lon<=330 & lon>=265)
+  nc_tmax <- ReadNetCDF(nc_path_max,subset = list(lat = -60:15, lon = 265:330),out = "array")
+  nc_tmin <- ReadNetCDF(nc_path_min,subset = list(lat = -60:15, lon = 265:330),out = "array")
+  #nc_tmin <- nc_open(paste0("/pikachu/datos4/Obs/t2m_cpc_daily/tmin.",year[i],".nc"))
   
   # Consigo los datos 
-  tmax = ncvar_get(nc_tmax, names(nc_tmax$var))
-  tmin = ncvar_get(nc_tmin, names(nc_tmin$var))
+  tmax = nc_tmax[[1]]
+  tmin = nc_tmin[[1]]
   
-  # Restringo datos a los limites
-  tmax_sa = tmax[lon_sa,lat_sa,]
-  tmin_sa = tmin[lon_sa,lat_sa,]
+  # Leo dimensiones (mismas para ambas variables)
+  lon <- dimnames(tmax)$lon
+  lat <- dimnames(tmax)$lat
+  tiempos <- dimnames(tmax)$time
   
   # missig value -9.96921e+36  which(tmin==-9.96921e+36)
   
   # Variable temperatura a 2 metros se obtiene como el promedio de Tmax y Tmin
-  t2m = (tmax_sa + tmin_sa)/2
-  
-  # Cierro los archivos nc
-  nc_close(nc_tmax)
-  nc_close(nc_tmin)
+  t2m = (tmax + tmin)/2
   
   #------------------------------------------------------------------
   # INTERPOLACION
@@ -84,11 +70,11 @@ for (i in 1:17) {
   # Creo lista vacia para llenar con los datos de todo un anio
   lista <- list()
   
-  # Necesita un loop alrededor de todos los dias del anio
+  # Necesita un loop alrededor de todos los dias del año
   
   for (dias in 1:length(tiempos)) {
     # Defino un objeto con coordenadas y datos de mi campo
-    obj <- list(x = lon[lon_sa], y = lat[lat_sa],
+    obj <- list(x = lon, y = lat,
                 z = t2m[,,dias])
     
     # Defino un grid con la dimensión la resolución que deseo,
@@ -97,11 +83,11 @@ for (i in 1:17) {
     # bilineal a la nueva reticula
     obj2 <- interp.surface.grid(obj, grid.list)
     
-    # Guardo en la variable todos los dias de un solo anio
+    # Guardo en la variable todos los dias de un solo año
     lista[[dias]] <- obj2[[3]] 
   
   
-  } # Termina loop sobre los dias del anio
+  } # Termina loop sobre los dias del año
 
   
   #-----------------------------------------------------------------------------
@@ -114,9 +100,7 @@ for (i in 1:17) {
   # Guardo los datos en un solo array con las dimensiones de lon,lat de Sudamerica
   # y todos los dias del periodo 
   t2m_sa_years <- abind(t2m_sa_years,array_2,along = 3)
-  
-  # Lleno la variable con las fechas
-  tiempos_total <- append(tiempos_total,tiempos)
+
   
   
 }
@@ -124,7 +108,8 @@ for (i in 1:17) {
 
 # Se quita el primer valor que es NA
 t2m_sa_years <- t2m_sa_years[,,-1]
-tiempos_total <- tiempos_total[-1]
+# Lleno la variable con las fechas
+tiempos_total <- seq.Date(as.Date("1999-01-01"),as.Date("2015-12-31"),by=1)
 
 #-----------------------------------------------------------------------------------------
 # ANIOS BISIESTOS
@@ -139,7 +124,12 @@ nb=setdiff(tiempos_total,bisis) # me quedo solo con los dias que no son 29/2 en 
 
 data.nobis=t2m_sa_years[,,nb]
 
-# ----------------------------------------------------------------------------------------
+# Primer grafico prueba para la semana del 12-18 febrero 2000
+med= apply(t2m_sa_years[,,408:416], c(1,2), mean)
+p = ggDataFrame(med)
+GraphDiscrete(Data = p,Titulo = "T2M ",Breaks = seq(0,30,5),Direccion = -1,Paleta = "RdBu",Label = "C")
+
+# ---------------------------------------------------------------------------------------
 # CLIMATOLOGIA
 # Reshape en los años
 obs = array(data.nobis,c(66,76,365,17))
@@ -177,7 +167,144 @@ clim[,,61:366]=smoothclim[,,60:365]
 rm("climday","climdayperiodic","smoothclim")
 dimnames(clim) = list(lon = dimnames(obs)$lon , lat = dimnames(obs)$lat, monday = substr(tiempos_total[(1+365):(365*2+1)],6,10))
 
+# Calculo de anomalias usando arrays
+# primero agrego el 29 de febrero en todos los años como NA para restarle la climatologia 
+#usar append after
+tiempos_total
+mes_dia = substr(tiempos_total,6,10)
+which(mes_dia == "02-28")
+prueba = append(t2m_sa_years[,,1])
+more.bis = array(NA, dim = c(66,76,366,17))
+more.bis[,,1:59,1] <- t2m_sa_years[,,1:59]
 
+# array a completar 
+more.bis = array(NA, dim = c(66,76,366*17))
+
+for (s in 1:17) {
+  
+  # Busca posiciones donde esta el 28 de febrero
+  mes_dia = substr(nb,6,10)
+  dia28_nb = which(mes_dia == "02-28")
+  
+  # dias 29/02 en el objeto final
+  dia29_falso = seq(60,366*17,366)
+  
+  # completo con t2m y dejo un campo vacio para todos los 29 de febrero (bisiesto o no bisiesto)
+  
+  if (s==1) { # primer año distinto
+    more.bis[,,1:59] <- data.nobis[,,1:59]
+  } else if(s<17) {
+    inicio = dia29_falso[s-1]+1   # salta un dia para dejar el 29 vacio
+  more.bis[,,inicio:(inicio+364)] <- data.nobis[,,(dia28_nb[s-1]+1):(dia28_nb[s])]
+  } else { # ultimo año distinto
+    more.bis[,,(5916+1):(366*17)] <- data.nobis[,,(dia28_nb[s]+1):6205]
+  }
+}
+
+
+
+# ahora lleno los campos bisiestos reales 
+bis = tiempos_total %in% bisis
+dia_mes_full = substr(tiempos_total,6,10)
+bisiesto = c(426,1890,3354,4818)
+for (b in 1:4) {
+  more.bis[,,bisiesto[b]] <- t2m_sa_years[,,bis][b]
+  
+}
+
+# 
+more.bis 
+arr = rep(clim,17)
+ar.clim2 = array(clim, dim = c(66,76,366,17))
+ar.clim = array(ar.clim2, dim = c(66,76,6222))
+ar.clim = array(arr, dim = c(66,76,6222))
+v = more.bis-ar.clim
+semana = apply(v[,,409:415], c(1,2), mean)
+
+df.anom= ggDataFrame(semana)
+df.anom = ggDataFrame(more.bis[,,408])
+GraphDiscrete(df.anom, Breaks = seq(0,30,5),Titulo = "Anom con array", Paleta = "RdBu",Label = "C", Direccion = -1)
+GraphDiscrete(df.anom, Breaks = seq(-6,6,1),Titulo = "Anom con array", Paleta = "RdBu",Label = "C", Direccion = -1)
+
+######
+# REPLICA CALCULO MARISOL
+week = c("2000-02-12","2000-02-13","2000-02-14","2000-02-15","2000-02-16","2000-02-17","2000-02-18")
+promedio_full= apply(t2m_sa_years[,,408:414], c(1,2), mean)
+promedio_clim = apply(clim[,,43:49], c(1,2), mean)
+
+GraphDiscrete(ggDataFrame(promedio_full-promedio_clim), Breaks = seq(-6,6,1),Titulo = "Calculo marisol", Paleta = "RdBu",Label = "C", Direccion = -1)
+Data= ggDataFrame(promedio_full-promedio_clim)
+Data = reshape2::melt(promedio_full-promedio_clim)
+dimnames(Data)[[2]] <- list("x","y","z")
+ggplot() +
+  geom_contour_fill(data=Data,aes(x, y, z = z))
+
+### anomalias para cada dia sin merge 12-18 de febrero 2000
+day =c("2000-02-12","2000-02-13","2000-02-14","2000-02-15","2000-02-16","2000-02-17","2000-02-18")
+day2 =c("0212","0213","0214","0215","0216","0217","0218")
+w_nomerge = t2m_sa_years[,,408:414]-clim[,,43:49]
+for (y in 1:7) {
+
+  df=ggDataFrame(w_nomerge[,,y])
+  GraphDiscrete(Data=df,Breaks = seq(-6,6,1),Titulo = paste0("Anom T2M sin merge \n",day[y])
+                , Paleta = "RdBu",Label = "C", Direccion = -1)
+  ggsave(paste0("/home/lucia.castro/SubX_processed_Rdata/nomerge_",day2[y],".png"),width = 10, height = 11)
+  
+}
+### anomalias para cada dia con merge 12-18 de febrero 2000
+dt.aver = dt.anom[dia %in% day]
+
+for (u in 1:7) {
+  
+  dt=dt.anom[dia == day[u]]
+  GraphDiscrete(Data=dt,Breaks = seq(-6,6,1),Titulo = paste0("Anom T2M con merge \n",day[u])
+                , Paleta = "RdBu",Label = "C", Direccion = -1)
+  ggsave(paste0("/home/lucia.castro/SubX_processed_Rdata/simerge_",day2[u],".png"),width = 10, height = 11)
+  
+}
+
+### anomalias para cada dia con array 12-18 de febrero 2000
+w_array=v[,,409:415]
+for (u in 1:7) {
+  
+  dt=ggDataFrame(w_array[,,u])
+  GraphDiscrete(Data=dt,Breaks = seq(-6,6,1),Titulo = paste0("Anom T2M con array \n",day[u])
+                , Paleta = "RdBu",Label = "C", Direccion = -1)
+  ggsave(paste0("/home/lucia.castro/SubX_processed_Rdata/conarray_",day2[u],".png"),width = 10, height = 11)
+  
+}
+
+# Calculo la anomalia 
+
+# repito la climatologia para 17 años
+clim2 = array(clim, dim = c(66,76,366,17))
+full = array(more.bis,dim = c(66,76,366,17))
+anom = full-clim2
+
+m = apply(anom[,,43:49,2], c(1,2), FUN = mean)
+df.anom = ggDataFrame(m)
+GraphDiscrete(df.anom, Breaks = seq(-6,6,1),Titulo = "Anom con array", Paleta = "RdBu",Label = "C", Direccion = -1)
+
+# -------
+# solo esa semana 12 -18 febrero 2000
+semana = c("02-12","02-13","02-14","02-15","02-16","02-17","02-18")
+semanita = dia_mes_full %in% semana
+sem2 =apply(t2m_sa_years[,,semanita], c(1,2),mean)
+anom2 = sem2 - apply(sem_clim, c(1,2),mean)
+sem_clim = clim[,,43:49]
+sem_full = t2m_sa_years[,,408:414]
+sem_anom2 = apply(sem_full, c(1,2), mean)- apply(sem_clim, c(1,2), mean)
+sem_anom = sem_full- sem_clim
+sem_media = apply(sem_anom, c(1,2), mean)
+
+ggDataFrame(sem_media)
+GraphDiscrete(Data = ggDataFrame(anom2), Titulo = "anom",Label = "C",Paleta = "RdBu",Direccion = -1,
+              Breaks = seq(-6,6,1))
+seq.Date(as.Date("2000-01-01"),as.Date("2000-12-31"),by = 1)
+
+ggplot(ggDataFrame(sem_anom2), aes(x=x,y=y,z=z))+
+  geom_contour_fill(breaks = seq(-6,6,1)) +
+  scale_fill_divergent(breaks = seq(-6,6,1))
 # Listo, ahora seguiría hacer las data tables, darle merge usando "monday,lat y lon" y después hacer la resta
 # Aca es necesario que se mantengan los NaN para conservar las dimensiones
 dt.clim=as.data.table(clim, na.rm = F)
@@ -190,7 +317,7 @@ dt.obs = dt.obs[order(match(lat, as.numeric(dimnames(obs)$lat)))]
 
 # renombro variable
 setnames(dt.clim, "value", "clim")
-# Guardo la data table de las observaciones
+# Guardo la data table de la climatologia
 saveRDS(dt.clim, file = "t2mclim_NOAA.rds")
 
 # Agrego la dimension "monday" a dt.obs
@@ -204,11 +331,23 @@ dt.anom$anom=dt.anom$t2m-dt.anom$clim
 dt.anom = dt.anom[order(match(lat, as.numeric(dimnames(obs)$lat)))]
 dt.anom = dt.anom[order(match(dia, dt.obs$dia))]
 
+dt.clim[lat == -22 & lon==300]
+dt.obs[lat == -22 & lon==300]
+f= dt.anom[lat == -22 & lon==300]
 # Elimino las columnas de obs y climatología y esas data tables
 dt.anom$t2m=NULL
 dt.anom$clim=NULL
 dt.anom$monday=NULL
 rm("dt.obs","dt.clim")
+
+dimnames(dt.anom)[[2]] <- list("x","y","dia","z")
+dt.anom$x <- as.numeric(dt.anom$x)
+dt.anom$y <- as.numeric(dt.anom$y)
+aver = seq.Date()
+dt.aver = dt.anom[dia %in% c("2000-02-12","2000-02-13","2000-02-14","2000-02-15","2000-02-16","2000-02-17","2000-02-18")]
+dt.aver = dt.aver[,.(z = mean(z,na.rm=T)),by = .(x,y)]
+dt.aver 
+GraphDiscrete(dt.aver, Breaks = seq(-6,6,1),Titulo = "Anom con array", Paleta = "RdBu",Label = "C", Direccion = -1)
 
 # renombro la fila de las fechas para luego combinar
 setnames(dt.anom, "dia", "targetdate")

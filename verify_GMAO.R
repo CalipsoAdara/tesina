@@ -49,7 +49,7 @@ ObsMediaSemanal <- function(PronoDate,TargetDate,Anomalia){
       
       week = as.vector(TargetDate[lead[w]:(lead[w]+6) , startdate])
       targetweek = Anomalia[,,which(days %in% week)]
-      media_semanal = apply(targetweek, c(1,2), FUN = mean, na.rm = FALSE)
+      media_semanal = apply(targetweek, c(1,2), FUN = mean, na.rm = T)
       anom_media_semanal[,,startdate,w] <- media_semanal 
       
     } #End loop pronodate
@@ -176,6 +176,20 @@ dt.rmse <- reshape2::melt(rmse, value.name = "z")
 dt.acc <- reshape2::melt(acc, value.name = "z")
 dt.acc2 <- reshape2::melt(acc2, value.name = "z")
 
+
+x <- as.numeric(dimnames(ar.anom)$lon)
+y <- as.numeric(dimnames(ar.anom)$lat)
+valores <- as.vector(rmse[,,4])
+
+# Creo los data frames necesarios
+# En la primer columna tiene todas las long repetidas la cantidad de veces de las latitudes
+# En la segunda columna tiene todas las lat repetidas la cantidad de veces de las longitudes
+# En la tercera columna tiene los valores de media mensual para 1 mes en particular
+data_temp<-data.frame(x=rep(x,length(y)),
+                      y=rep(y,each=length(x)),
+                      z=valores)
+plot(rmse[,,1])
+GraphDiscrete(data_temp,Titulo = "averr", Label = "rmse",Breaks = seq(0,3,0.5), Paleta = "YlOrRd", Direccion = 1)
 #---------------------------------------------------------------------------------------
 #  Gráficos  
 #---------------------------------------------------------------------------------------
@@ -202,3 +216,13 @@ data_temp <- data.frame(x=rep(x,length(y)),
 
 GraphDiscrete(data_temp, Breaks = breaks, Titulo = "T2M week mean \n 22-28 Ene 2001", Paleta = "RdBu",Label = "°C") 
 ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/meanweak20010122_28.png",)
+
+# Graficar rmse de la semana dos nomas
+dt.rmse[week=="Week 2"]
+GraphDiscrete(dt.acc,Titulo = "aver", Paleta = "YlOrRd", Label = "rmse",Breaks = seq(0,3,0.5))
+
+
+
+
+# GRAFICO UNO POR UNO AVER QUE PASA 
+
