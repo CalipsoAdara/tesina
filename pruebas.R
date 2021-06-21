@@ -183,4 +183,11 @@ GraphDiscrete(week1.mean, Breaks = breaks, Titulo = "T2M week mean \n 08-14 Nov 
 
 
 #####################
+array1 = array(1:6,dim=(c(2,3)))
+array1
 
+array_Rep = array(1:24,c(2,3,4))
+array_Rep
+
+array_rep = array(array_Rep,c(2,3,2,2))
+array_rep

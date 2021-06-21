@@ -58,7 +58,7 @@ emvarname='tasem'
 #  Main Program  
 #---------------------------------------------------------------------------------------
 
-#for(imodel in 1:nmodels){
+
 for(imodel in 1:nmodels){
   # Define the model and group and consequent start/end year, leads and ensemble numbers
   model=models[imodel]

@@ -84,6 +84,7 @@ ar.model = readRDS("/home/lucia.castro/SubX_processed_Rdata/model_GMAO_ONDEFM.rd
 targetdate = readRDS("/home/lucia.castro/SubX_processed_Rdata/targetdate_GMAO_ONDEFM.rds")
 ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
 
+ar.model = ar.model[,seq(76,1,-1),,]
 # La cantidad de fechas de pronosticos desde Oct a Mar en el periodo del modelo
 fechas_pronosticos <- dim(ar.model)[4]
 
@@ -194,8 +195,8 @@ GraphDiscrete(data_temp,Titulo = "averr", Label = "rmse",Breaks = seq(0,3,0.5), 
 #  Gráficos  
 #---------------------------------------------------------------------------------------
 g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.5),Label = "rsme",Paleta = "YlOrRd", Direccion = "1")
-g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.7,0.7,0.2), Label = "me",Paleta = "RdBu",Direccion = "-1")
-g3 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(0,1,0.1), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
+g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "me",Paleta = "RdBu",Direccion = "-1")
+g3 <- GraphDiscreteMultiple(Data = dt.mae, Breaks = seq(0,2,0.25), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
 
 
 fig <- grid.arrange(g1,g2,g3, ncol = 1,top = textGrob("SubX GMAO-GEOS_V2p1 tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
@@ -224,5 +225,86 @@ GraphDiscrete(dt.acc,Titulo = "aver", Paleta = "YlOrRd", Label = "rmse",Breaks =
 
 
 
-# GRAFICO UNO POR UNO AVER QUE PASA 
+# GRAFICO UNO POR UNO A VER QUE PASA 
 
+# 11 de enero 
+semobs = ar.anom[,,12:18]
+semmod = ar.model[,seq(76,1,-1),1:7,3]  
+
+ggDataFrame(apply(semobs,c(1,2), mean))
+
+GraphDiscrete(ggDataFrame(apply(semobs,c(1,2), mean)),Titulo = "OBS", Paleta = "RdBu", Label = "C",Breaks = seq(-6,6,1), Direccion = -1)
+GraphDiscrete(ggDataFrame(apply(semmod,c(1,2), mean)),Titulo = "MODE", Paleta = "RdBu", Label = "C",Breaks = seq(-6,6,1), Direccion = -1)
+
+
+# LUEGO DE LAS FUNCIONES
+
+anom_media_semanal[,,3,1]
+
+GraphDiscrete(ggDataFrame(anom_media_semanal[,,3,1]),Titulo = "OBS", Paleta = "RdBu", Label = "C",Breaks = seq(-6,6,1), Direccion = -1)
+GraphDiscrete(ggDataFrame(model_media_semanal[,,3,1]),Titulo = "MODE", Paleta = "RdBu", Label = "C",Breaks = seq(-6,6,1), Direccion = -1)
+
+# LA DIFERENCIA
+GraphDiscrete(ggDataFrame(mae[,,1]),Titulo = "diferencia", Paleta = "RdBu", Label = "C",Breaks = seq(0,2,0.2), Direccion = -1)
+GraphDiscrete(ggDataFrame(dif[,,3,1]),Titulo = "diferencia", Paleta = "RdBu", Label = "C",Breaks = seq(-6,6,1), Direccion = -1)
+Breaks = seq(-6,6,1)
+
+ggplot() +
+  geom_contour_fill(data=ggDataFrame(mae[,,1]),aes(x, y, z = z))+
+  scale_fill_distiller(name="Label",palette="RdBu",direction= -1,
+                       na.value = "transparent",
+                       breaks = Breaks,
+                       limits = c(min(Breaks), max(Breaks)),
+                       guide = guide_colorstrip(),
+                       oob  = scales::squish)
+# BAJANDO COSAS DEL IRI
+
+URLSEM = "https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/.GMAO/.GEOS_V2p1/.hindcast/.tas/X/%2895W%29%2830W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/S/%280000%2011%20Jan%201999%29%280000%2018%20Jan%201999%29RANGEEDGES/dods"
+data_SUBX = metR::ReadNetCDF(URLSEM, out='array')
+data_SUBX=data_SUBX[[1]]
+
+
+# abrir el dato full
+inPath='/datos/SubX/hindcast'
+path = paste0(inPath,"/tassfc/daily/full/GMAO-GEOS_V2p1/")
+
+file = "tas_sfc_GMAO-GEOS_V2p1_19990111.e1.SouthAmerica.daily.nc"
+file = "tas_sfc_GMAO-GEOS_V2p1_19990111.e2.SouthAmerica.daily.nc"
+file = "tas_sfc_GMAO-GEOS_V2p1_19990111.e3.SouthAmerica.daily.nc"
+file = "tas_sfc_GMAO-GEOS_V2p1_19990111.e4.SouthAmerica.daily.nc"
+data = metR::ReadNetCDF(paste0(path,file), out='array')
+
+data = data [[2]]
+week = data[,,2:8]
+
+semana = c("11","12","13","14","15","16","17")
+anio = 1999:2015
+t2m = array(NA, dim= c(66,76,7,17,4))
+
+for (i in 1:17) {
+  
+  for (j in 1:4) {
+    
+    file = paste0("tas_sfc_GMAO-GEOS_V2p1_",anio[i],"0111.e",j,".SouthAmerica.daily.nc")
+  
+    data = metR::ReadNetCDF(paste0(path,file), out='array')
+    
+    data = data[[2]]
+    week = data[,,2:8]
+    
+    t2m[,,,i,j] <- week
+    
+  }
+  
+  
+}
+
+# media
+
+t2m_ens = apply(t2m, c(1,2,3,4), mean)
+
+# promedio semanal 
+t2m_sem = apply(t2m_ens,c(1,2,4),mean)
+
+var = t2m_sem[,,1] - apply(t2m_sem, c(1,2),mean)
+image.plot(var)

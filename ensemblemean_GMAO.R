@@ -59,7 +59,7 @@ nens=nenss[imodel]
 time=seq(0.5,nlead,1)
 
 # Define input directory
-inDir1=paste0(inPath,varname,plevstr,'/daily/ensmean2/',group,'-',model,'/') # input filename for ensemble mean anom data
+inDir1=paste0(inPath,varname,plevstr,'/daily/ensmean/',group,'-',model,'/') # input filename for ensemble mean anom data
 
 i=0
 
