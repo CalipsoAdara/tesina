@@ -129,7 +129,7 @@ ar.model = data_all
 
 # Extraigo solo las fechas de startdate desde Octubre a Marzo
 OM = c(1,2,3,10,11,12)
-oct_mar <- which(month(startdate) %in% OM) # posiciones donde el mes cae entre Octubre a Marzo
+oct_mar <- which(month(sttdate) %in% OM) # posiciones donde el mes cae entre Octubre a Marzo
 
 ar.model.OM <- ar.model[,,,oct_mar]
 rm("ar.model","data_all")

@@ -140,22 +140,20 @@ dimnames(acc) <- list(x = dimnames(ar.anom)$lon,
                       week = c("Week 1", "Week 2","Week 3", "Week 4"))
 
 # Armo data.frames para graficar
-dt.me <- melt(me, value.name = "z")
-dt.mae <- melt(mae, value.name = "z")
-dt.rmse <- melt(rmse, value.name = "z")
-dt.acc <- melt(acc, value.name = "z")
-
+dt.me <- reshape2::melt(me, value.name = "z")
+dt.mae <- reshape2::melt(mae, value.name = "z")
+dt.rmse <- reshape2::melt(rmse, value.name = "z")
+dt.acc <- reshape2::melt(acc, value.name = "z")
 #---------------------------------------------------------------------------------------
 #  Gráficos  
 #---------------------------------------------------------------------------------------
 g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.5),Label = "rsme",Paleta = "YlOrRd", Direccion = "1")
-g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.5,0.7,0.2), Label = "me",Paleta = "RdBu",Direccion = "-1")
-g3 <- GraphDiscreteMultiple(Data = dt.mae, Breaks = seq(0,3,0.5), Label = "mae",Paleta = "YlOrRd",Direccion = "1")
-g4 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(-1,1,0.2), Label = "ACC",Paleta = "RdBu",Direccion = "-1")
+g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "me",Paleta = "RdBu",Direccion = "-1")
+g3 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(0,2,0.25), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
 
 
 
-fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX EMC-GEFS tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+fig <- grid.arrange(g1,g2,g3, ncol = 1,top = textGrob("SubX EMC-GEFS tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
 ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_EMC.png",plot=fig,width = 10, height = 11)
 
 

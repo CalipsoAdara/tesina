@@ -125,8 +125,6 @@ dimnames(data_all)$L=seq(1,nlead,1)
 # -------------------------------------------------------
 #De ahora en mas trabajo con las variables en array en vez de data.table para agilizar procesos
 ar.model = data_all
-ar.model = ar.model[,,1:28,]
-
 
 # Extraigo solo las fechas de startdate desde Octubre a Marzo
 OM = c(1,2,3,10,11,12)
@@ -137,12 +135,12 @@ rm("ar.model","data_all")
 
 # Ahora debería agregar un array con la informacion de targetdate y de startdate
 startdate = as.Date(dimnames(ar.model.OM)$startdate)
-targetdate = array(NA,dim = c(28,length(startdate)))
-dimnames(targetdate) <- list("lead" = seq(1,28,1), "stardate" = dimnames(ar.model.OM)$startdate)
+targetdate = array(NA,dim = c(nleads,length(startdate)))
+dimnames(targetdate) <- list("lead" = seq(1,nleads,1), "stardate" = dimnames(ar.model.OM)$startdate)
 
 # Recorre todas las fechas de pronosticos
 for (j in 1:length(startdate)) {
-  targetdate[,j] <- as.character(startdate[j] +(1:28))
+  targetdate[,j] <- as.character(startdate[j] +(1:nleads))
 }
 
 
