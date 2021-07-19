@@ -1,4 +1,4 @@
-# SubX data - t2m anomaly verification for ESRL model (SubX database)
+# SubX data - t2m anomaly verification for NRL model (SubX database)
 #
 # M. Alvarez - 2020
 # Modified by Lucia M Castro
@@ -20,12 +20,6 @@ library("maps")
 library("ggplot2")
 library("gridExtra")
 library("grid")
-
-# Cargo mis funciones
-source("/home/lucia.castro/tesina/funciones.R")
-#---------------------------------------------------------------------------------------
-#  functions of verification metrics 
-#---------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------
 # Funcion que toma los campos de reanalisis para cada semana respecto al startdate y calcula
@@ -80,8 +74,8 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
 #---------------------------------------------------------------------------------------
 #  Main Program  
 #---------------------------------------------------------------------------------------
-ar.model = readRDS("/home/lucia.castro/SubX_processed_Rdata/model_ESRL_ONDEFM.rds")
-targetdate = readRDS("/home/lucia.castro/SubX_processed_Rdata/targetdate_ESRL_ONDEFM.rds")
+ar.model = readRDS("/home/lucia.castro/SubX_processed_Rdata/model_NRL_ONDEFM.rds")
+targetdate = readRDS("/home/lucia.castro/SubX_processed_Rdata/targetdate_NRL_ONDEFM.rds")
 ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
 
 # La cantidad de fechas de pronosticos desde Oct a Mar en el periodo del modelo
@@ -161,7 +155,9 @@ g3 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(0,1,0.10), Label = "ACC"
 g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "VAR",Paleta = "RdBu",Direccion = "-1")
 
 
-fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX ESRL-FIMr1p1 tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
-ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_ESRL.png",plot=fig,width = 10, height = 11)
+
+fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX NRL-NESM tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_NRL.png",plot=fig,width = 10, height = 11)
+
 
 

@@ -42,8 +42,9 @@ nmpyr=12
 imn1=1
 imn2=12
 
-sdat=879 # number of start dates to allocate final array
+#sdat=879 # number of start dates to allocate final array
 
+sdat=887
 #---------------------------------------------------------------------------------------
 #  Main Program  
 #---------------------------------------------------------------------------------------
@@ -121,32 +122,28 @@ for(iyr in syr:eyr){
 dimnames(data_all)$startdate=as.character(sttdate)
 # Rename lead (L) dimension to 1:45 (it was overwritten when interpolating with CDO but time sequence remains unchanged)
 dimnames(data_all)$L=seq(1,45,1)
+# -------------------------------------------------------
+#De ahora en mas trabajo con las variables en array en vez de data.table para agilizar procesos
+ar.model = data_all
 
-dt.model=reshape2::melt(data_all)
-rm(data_all)
+# Extraigo solo las fechas de startdate desde Octubre a Marzo
+OM = c(1,2,3,10,11,12)
+oct_mar <- which(month(sttdate) %in% OM) # posiciones donde el mes cae entre Octubre a Marzo
 
-# Ahora debería agregar una columna que sea "targetdate"
-dt.model$startdate=as.Date(dt.model$startdate)
-dt.model$targetdate=dt.model$startdate+dt.model$L
-setnames(dt.model, "value", "tasaem")
-dt.model$week=dt.model$L
-dt.model$week[(dt.model$L>=1 & dt.model$L<=7)]=1
-dt.model$week[(dt.model$L>=8 & dt.model$L<=14)]=2
-dt.model$week[(dt.model$L>=15 & dt.model$L<=21)]=3
-dt.model$week[(dt.model$L>=22 & dt.model$L<=28)]=4
-dt.model$week[(dt.model$L>=29)]=99
-# Ahora que ya armé la variable "week" en función de los lead, y la variable "targetdate" usando L y startdate, puedo eliminar la variable L si quisiera
+ar.model.OM <- ar.model[,,,oct_mar]
+rm("ar.model","data_all")
 
-# Cargo observaciones, debería convertirlas en data table con lat, lon y (target)date y luego merge con los pronósticos
-dt.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
+# Ahora debería agregar un array con la informacion de targetdate y de startdate
+startdate = as.Date(dimnames(ar.model.OM)$startdate)
+targetdate = array(NA,dim = c(nleads,length(startdate)))
+dimnames(targetdate) <- list("lead" = seq(1,nleads,1), "startdate" = dimnames(ar.model.OM)$startdate)
 
-dt.verif=merge(dt.model,dt.anom,by=c("lat","lon","targetdate"))
-dt.verif$startmonth=month(dt.verif$startdate)
-OA = c(1,2,3,4,10,11,12);
+# Recorre todas las fechas de pronosticos
+for (j in 1:length(startdate)) {
+  targetdate[,j] <- as.character(startdate[j] +(1:nleads))
+}
 
-dt.verifOA=dt.verif[dt.verif$startmonth %in% OA,]
-dt.verifOA$startmonth=NULL #Elimino la columna con el mes de inicio
-rm("dt.anom","dt.model")
 
 # Todo listo para empezar la verificación octubre-abril. Guardo para limpiar y comenzar la verificación.
-saveRDS(dt.verifOA,"./SubX_processed_Rdata/toverif_NRL_ONDEFMA.rds")
+saveRDS(ar.model.OM,paste0("./SubX_processed_Rdata/model_",group,"_ONDEFM.rds"))
+saveRDS(targetdate,paste0("./SubX_processed_Rdata/targetdate_",group,"_ONDEFM.rds"))

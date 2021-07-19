@@ -136,7 +136,7 @@ rm("ar.model","data_all")
 # Ahora debería agregar un array con la informacion de targetdate y de startdate
 startdate = as.Date(dimnames(ar.model.OM)$startdate)
 targetdate = array(NA,dim = c(nleads,length(startdate)))
-dimnames(targetdate) <- list("lead" = seq(1,nleads,1), "stardate" = dimnames(ar.model.OM)$startdate)
+dimnames(targetdate) <- list("lead" = seq(1,nleads,1), "startdate" = dimnames(ar.model.OM)$startdate)
 
 # Recorre todas las fechas de pronosticos
 for (j in 1:length(startdate)) {

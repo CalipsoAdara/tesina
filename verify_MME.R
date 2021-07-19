@@ -1,4 +1,4 @@
-# SubX data - t2m anomaly verification for ESRL model (SubX database)
+# SubX data - t2m anomaly verification for GMAO model (SubX database)
 #
 # M. Alvarez - 2020
 # Modified by Lucia M Castro
@@ -49,7 +49,7 @@ ObsMediaSemanal <- function(PronoDate,TargetDate,Anomalia){
       
       week = as.vector(TargetDate[lead[w]:(lead[w]+6) , startdate])
       targetweek = Anomalia[,,which(days %in% week)]
-      media_semanal = apply(targetweek, c(1,2), FUN = mean, na.rm = FALSE)
+      media_semanal = apply(targetweek, c(1,2), FUN = mean, na.rm = T)
       anom_media_semanal[,,startdate,w] <- media_semanal 
       
     } #End loop pronodate
@@ -80,8 +80,8 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
 #---------------------------------------------------------------------------------------
 #  Main Program  
 #---------------------------------------------------------------------------------------
-ar.model = readRDS("/home/lucia.castro/SubX_processed_Rdata/model_ESRL_ONDEFM.rds")
-targetdate = readRDS("/home/lucia.castro/SubX_processed_Rdata/targetdate_ESRL_ONDEFM.rds")
+ar.model = readRDS("/home/lucia.castro/SubX_processed_Rdata/MME_OA.rds")
+targetdate = readRDS("/home/lucia.castro/SubX_processed_Rdata/targetdate_MME_OA.rds")
 ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
 
 # La cantidad de fechas de pronosticos desde Oct a Mar en el periodo del modelo
@@ -126,7 +126,6 @@ for (week in 1:4) {
 } # End loop week
 
 
-
 # Renombro dimensiones 
 dimnames(me) <- list(x = dimnames(ar.anom)$lon, 
                      y = dimnames(ar.anom)$lat, 
@@ -161,7 +160,7 @@ g3 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(0,1,0.10), Label = "ACC"
 g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "VAR",Paleta = "RdBu",Direccion = "-1")
 
 
-fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX ESRL-FIMr1p1 tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
-ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_ESRL.png",plot=fig,width = 10, height = 11)
 
+fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX MMEtasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_MME.png",plot=fig,width = 10, height = 11)
 

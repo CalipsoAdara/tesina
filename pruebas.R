@@ -191,3 +191,139 @@ array_Rep
 
 array_rep = array(array_Rep,c(2,3,2,2))
 array_rep
+
+#------------------------- PROBANDING
+
+GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
+  
+  ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
+  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
+  # son los valores
+  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
+  ## Titulo: character vector con el titulo del grafico
+  ## Label: character vector con el titulo para la barra de colores. Ej "Kelvin"
+  ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
+  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
+  ## LabelBreaks: un vector con las
+  
+  # Cargo paquetes
+  library("ggplot2")
+  library("maps")
+  library("RColorBrewer")
+  library("scales")
+  # Seteo los parametros de mapa y gradiente 
+  mapa<-map_data("world2") 
+  min <- min(Data$z, na.rm = T)
+  max <- max(Data$z, na.rm = T)
+  ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
+  ggDataFrame()  
+  Data = ggDataFrame(ar.anom[,,6200]) 
+  Breaks = seq(-6,6,1)
+  Label = "C"
+  Titulo = "Prueba"
+  Direccion = 1
+  Paleta = "RdBu"
+  Data$z=oob_squish(Data$z,range = c(-6,6))
+  mascara = ar.anom[,,6200]>1
+  mascara[mascara] <- 1
+  ggDataFrame(mascara)
+  lon
+  lon = seq(265,330,1)
+  lat = rev(seq(-60,15,1))
+  
+  mascara
+  dimnames(mascara)$lon
+  sum(mascara, na.rm = T)
+  tito= which(mascara, arr.ind = T)
+  punto_lon = lon[tito[,1]]
+  punto_lat = lat[tito[,2]]  
+  df=data.frame(lon = punto_lon, lat= punto_lat)
+  datapoli = data.frame(
+    lon = c(291,288,293,298),
+    lat = c(-30,-40,-46,-40))
+  datasacz = data.frame( lon = c(300,300,310,317),
+                         lat=c(-3,-15,-30,-21)
+  )
+  # norte, oeste, sur, este (se lee de izq a derecha)
+  # Grafico en si 
+  ggplot() +
+    geom_contour_fill(data=Data,aes(x, y, z = z),breaks = c(-6,-4,-2,0,2,4,6)) +
+    #geom_point(data=df, aes( x=lon, y=lat), col="black",size=0.5, na.rm = T)+
+    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
+                         labels = Breaks,
+                         
+                         breaks = Breaks,
+                         limits = c(min(Breaks), max(Breaks)),
+                         guide = guide_colorstrip()) +
+    
+    ggtitle(Titulo)  +
+    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+    geom_polygon(data= datapoli, aes(x=lon, y=lat),color= 'slateblue',fill= NA,size=0.8)+
+    geom_polygon(data= datasacz, aes(x=lon, y=lat),color= 'seagreen',fill= NA,size=0.8)
+  theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"),
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    
+    theme(plot.title = element_text(hjust = 0.5))
+  
+}
+library(mgcv)
+data(columb.polys)
+bnd <- columb.polys[[2]]
+plot(bnd,type="n")
+polygon(bnd)
+x <- seq(7.9,8.7,length=20)
+y <- seq(13.7,14.3,length=20)
+gr <- as.matrix(expand.grid(x,y))
+inside <- in.out(bnd,gr)
+points(gr,col=as.numeric(inside)+1)
+
+as.matrix(expand.grid(x_coords,y_coords))
+p<-polygon(as.matrix(expand.grid(x_coords,y_coords)))
+
+library(secr)
+pointsInPolygon 
+## 100 random points in unit square
+xy <- matrix(runif(200), ncol = 2)
+## triangle centred on (0.5, 0.5)
+poly <- data.frame(x = c(0.2,0.5,0.8,0.2), y = c(0.2,0.8,0.2,0.2))
+plot(xy, pch = 1 + pointsInPolygon(xy, poly))
+lines(poly)
+
+#######################3
+# POLYGON
+# load library
+library(sp)
+
+# Make a set of coordinates that represent vertices
+# with longitude and latitude in the familiar
+# degrees  (se repite el primer punto para unir el poligono)
+lon = c(291,288,293,298)
+lat = c(-30,-40,-46,-40)
+x_coords <- c(291,288,293,298,291)
+y_coords <- c(-30,-40,-46,-40,-30)
+poligon = polygon()
+
+poly1 <- sp::Polygon(cbind(x_coords,y_coords))
+firstPoly <- sp::Polygons(list(poly1), ID = "A")
+in.out(p,gr)
+poly1 <- data.frame(x_coords <- c(291,288,293,298,291),
+                    y_coords <- c(-30,-40,-46,-40,-30))
+coord = data.frame(lon=rep(lon,length(lat)),
+                   lat=rep(lat, each=length(lon)))
+
+library(secr)
+pointsInPolygon(coord,poly1) 
+lat
+cbind(lon=rep(lon,length(lat)),
+      lat=rep(lat, each=length(lon)))
+

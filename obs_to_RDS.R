@@ -34,9 +34,9 @@ setwd(savepath)
 # 4 anios bisiestos, 13 anios no bisiestos 
 t2m_sa_years <- array(NA, c(66,76))
 
-for (i in 1:17) {
+for (i in 1:18) {
   
-  year <- 1999:2015
+  year <- 1999:2016
   
   #-----------------------------------------
   # ABRIR DATOS 
@@ -107,7 +107,7 @@ for (i in 1:17) {
 # Se quita el primer valor que es NA
 t2m_sa_years <- t2m_sa_years[,,-1]
 # Lleno la variable con las fechas
-tiempos_total <- as.character(seq.Date(as.Date("1999-01-01"),as.Date("2015-12-31"),by=1))
+tiempos_total <- as.character(seq.Date(as.Date("1999-01-01"),as.Date("2016-12-31"),by=1))
 
 #-----------------------------------------------------------------------------------------
 # ANIOS BISIESTOS
@@ -116,7 +116,7 @@ tiempos_total <- as.character(seq.Date(as.Date("1999-01-01"),as.Date("2015-12-31
 dimnames(t2m_sa_years)[[3]] <- tiempos_total
 
 # Sigo trabajando con el array
-bisis=c("2000-02-29","2004-02-29","2008-02-29","2012-02-29") 
+bisis=c("2000-02-29","2004-02-29","2008-02-29","2012-02-29","2016-02-29") 
 nb=setdiff(tiempos_total,bisis) # me quedo solo con los dias que no son 29/2 en el período
 
 data.nobis=t2m_sa_years[,,nb]
@@ -124,9 +124,9 @@ data.nobis=t2m_sa_years[,,nb]
 # ---------------------------------------------------------------------------------------
 # CLIMATOLOGIA
 # Reshape en los años
-obs = array(data.nobis,c(66,76,365,17))
+obs = array(data.nobis,c(66,76,365,18))
 # Le doy nombre a las dimensiones del nuevo array
-dimnames(obs) <- list(lon = seq(265,330, 1),lat = rev(seq(-60,15, 1)),monday = substr(tiempos_total[1:365],6,10),year=1999:2015)
+dimnames(obs) <- list(lon = seq(265,330, 1),lat = rev(seq(-60,15, 1)),monday = substr(tiempos_total[1:365],6,10),year=1999:2016)
 
 dimnames(t2m_sa_years) <- list(lon = dimnames(obs)$lon , lat = dimnames(obs)$lat, dia = tiempos_total)
 # Calculo la media en la dimensión de los años (tomo 1999-2015)
@@ -164,9 +164,9 @@ dimnames(clim) = list(lon = dimnames(obs)$lon , lat = dimnames(obs)$lat, monday 
 # primero agrego el 29 de febrero en todos los años como NA para restarle la climatologia 
 
 # array a completar 
-more.bis = array(NA, dim = c(66,76,366*17))
+more.bis = array(NA, dim = c(66,76,366*18))
 
-for (s in 1:17) {
+for (s in 1:18) {
   
   # Busca posiciones donde esta el 28 de febrero
   mes_dia = substr(nb,6,10)
@@ -205,6 +205,7 @@ quitar29 = -(setdiff(dia29_falso,bisiesto))
 array.anom = anom[,,quitar29]
 
 # Guardo el array
+dimnames(ar.anom) = list("lon" = lon , "lat" = lat , "day" = as.character(tiempos_total))
 saveRDS(array.anom, file = "anomarrayNOAA.rds")
 
 #------------------------------------------------------------------------------------------------------------
@@ -279,6 +280,56 @@ saveRDS(dt.anom ,file = "t2manom_data.table_NOAA.rds")
 
 # Aca lei los datos por no correrlo todo seguido (ignorar la sentencia)
 ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
+
+dim(ar.anom)
+
+dt<-reshape2::melt(ar.anom[,,1])
+dimnames(dt)[[2]] <- list("x","y","z")
+GraphDiscrete(Data = dt,Titulo = "T2M ",Breaks = seq(-6,6,1),Direccion = -1,Paleta = "RdBu",Label = "C")
+
+Data = dt
+Titulo = "T2M "
+Breaks = seq(-6,6,1)
+Direccion = -1
+Paleta = "RdBu"
+Label = "C"
+
+GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
+
+  # Seteo los parametros de mapa y gradiente 
+  mapa<-map_data("world2") 
+  min <- min(Data$z, na.rm = T)
+  max <- max(Data$z, na.rm = T)
+  
+  # Grafico en si 
+  ggplot() +
+    geom_contour_fill(data=Data,aes(x, y, z = z),breaks = Breaks) +
+    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
+                         na.value = "transparent",
+                         breaks = c(-6,-4,-2,0,2,4,6),
+                         limits = c(min(Breaks), max(Breaks)),
+                         guide = guide_colorstrip(),
+                         oob  = scales::squish) +
+    ggtitle(Titulo)  +
+    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+    theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    coord_cartesian()  +
+    theme(plot.title = element_text(hjust = 0.5))
+  
+}
+GraphDiscrete(Data = dt,Titulo = "T2M ",Breaks = seq(-6,6,1),Direccion = -1,Paleta = "RdBu",Label = "C")
+
 
 
 

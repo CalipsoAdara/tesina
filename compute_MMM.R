@@ -18,8 +18,51 @@ savepath = "/home/lucia.castro/SubX_processed_Rdata/"
 # Seteo el directorio
 setwd(savepath)
 
+# FUNCIONES ----------------------------------------------------------------------------------
+Predictibilidad <- function(Modelo, Ensamble, FechaPronostico) {
+  ## Modelo: array de 4 dimensiones (lon,lat,lead,startdate)
+  ## Ensamble: array de 4 dimensiones (lon,lat,lead,startdate)
+  ## FechaPronostico: la cantidad de startdate. Ambos array deben tener las mismas dimensiones
+  
+  # Separo en semanas y promedio semanalmente
+  ensweek = ModelMediaSemanal(Ensamble, FechaPronostico)
+  modweek = ModelMediaSemanal(Modelo, FechaPronostico)
+  
+  # Correlaciono ensamble y el modelo restante por cada semana
+  corrw <- array(NA, dim = c(66,76,4))
+  for (w in 1:4) {
+    corrw[,,w] <- CorrWeek(ensweek[,,,w], modweek[,,,w])
+  }
+  return(corrw)
+}
+#------------------------------------------------------------------------------------------------
+CompletarFaltante <- function(Target, Stdt, ModeloObjetivo) {
+  ## Target: Vector logico
+  ## Stdt: Vector logico
+  ## ModeloObjetico: array de 3 dimensiones que deberia completarse con 66,76 y 28 lead
+  
+  # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
+  if (sum(Target)<28) {
+    faltante = 28 - sum(Target)
+    mod.faltante = array(NA, dim = c(66,76,faltante))
+    
+    # PRUEBA: QUE PASA CUANDO NO HAY MODELO ESA SEMANA
+    if (sum(Stdt)==0){
+      #print(paste("La semana ",startweek[1]," no tiene el modelo",models[mod]))
+      
+      modelo_objetivo = mod.faltante
+    }else{
+      #print(paste("La semana ",startweek[1]," le faltan dias del modelo",models[mod]))
+      
+      modelo_objetivo = abind(ModeloObjetivo,mod.faltante)
+    }
+  }
+  return(modelo_objetivo)
+}
+#----------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 # Cargo los datos 
-models = c("ESRL","ECCC","EMC","GMAO","RSMAS")#,"NRL")
+models = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL")
 nmodels = length(models)
 
 ESRL <- readRDS("model_ESRL_ONDEFM.rds")
@@ -35,7 +78,6 @@ targetdate_GMAO <- readRDS("targetdate_GMAO_ONDEFM.rds")
 targetdate_RSMAS <- readRDS("targetdate_RSMAS_ONDEFM.rds")
 targetdate_NRL <- readRDS("targetdate_NRL_ONDEFM.rds")
 
-
 # startdate de los modelos 
 startdateESRL = as.Date(dimnames(targetdate_ESRL)$startdate)
 startdateECCC = as.Date(dimnames(targetdate_ECCC)$startdate)
@@ -46,12 +88,12 @@ startdateNRL = as.Date(dimnames(targetdate_NRL)$startdate)
 
 #
 # Listas de todos los modelos 
-MODELOS <- list(ESRL, ECCC, EMC, GMAO, RSMAS)
+MODELOS <- list(ESRL, ECCC, EMC, GMAO, RSMAS, NRL)
 
 targetdateMODELOS <- list(targetdate_ESRL, targetdate_ECCC, targetdate_EMC, 
-                          targetdate_GMAO, targetdate_RSMAS)
+                          targetdate_GMAO, targetdate_RSMAS,targetdate_NRL)
 startdateMODELOS <- list(startdateESRL, startdateECCC, startdateEMC,
-                     startdateGMAO, startdateRSMAS)
+                     startdateGMAO, startdateRSMAS, startdateNRL)
 
 # Obtengo el periodo de 1999 a 2015 con solo octubre a marzo
 periodo = seq.Date(as.Date("1999-01-01"), as.Date("2015-12-31"), by = 1)
@@ -97,7 +139,11 @@ for (i in 1:length(sabadoMME)) { # Por cada sabado
     # Que startdate cae en la semana del MME para cada modelo
     stdt = startdateMODELOS[[mod]] %in% startweek
     
-   
+    # Tomar la inicializacion mas cercana al sabado de pronostico
+    if (sum(stdt)>1) {    # Hay mas de un inicio en la semana
+      stdt = last(which(stdt))
+    }
+    
     # Quiero saber que lead hace que coincida el targetdate del modelo con el targetdate del MME 
     leadMODELO = targetdateMODELOS[[mod]]
     leadMME = targetdateMME[,i]
@@ -108,13 +154,9 @@ for (i in 1:length(sabadoMME)) { # Por cada sabado
     model = MODELOS[[mod]]
     modelo_objetivo = model[,,target,stdt]
     
-
     
+  
     
-    # Tomar la inicializacion mas cercana al sabado de pronostico
-    if (sum(stdt)>1) {    # Hay mas de un inicio en la semana
-      stdt = last(which(stdt))
-    }
     # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
     if (sum(target)<28) {
       
@@ -128,9 +170,10 @@ for (i in 1:length(sabadoMME)) { # Por cada sabado
         
         modelo_objetivo = mod.faltante
       }else{
+        print(paste("La semana ",startweek[1]," le faltan dias del modelo",models[mod]))
+        
         modelo_objetivo = abind(modelo_objetivo,mod.faltante)
       }
-
     }
     
     # Guardo
@@ -139,4 +182,98 @@ for (i in 1:length(sabadoMME)) { # Por cada sabado
   } # End loop modelos
   
 } # End loop sabados  
+
+
+# Promedio sobre los modelos (cuarta dimension)
+MME_pro = apply(MME, c(1,2,3,5), mean, na.rm = T)
+
+
+# Todo listo para empezar la verificación octubre-marzo. Guardo para limpiar y comenzar la verificación.
+saveRDS(MME_pro,paste0("./MME_OM.rds"))
+saveRDS(targetdateMME,paste0("./targetdate_MME_OM.rds"))
+
+#-------------------------------------------------------------------------------------------------
+# Predictibilidad
+# correlacionar un modelo contra la media del ensamble formada por el resto de los modelos, 
+# esto repetirlo con cada modelo y sacar el promedio de esa correlación
+cor_mod <- array(NA, dim = c(66,76,4,nmodels))
+
+for (model in 1:nmodels) {
+  
+  # Tomo el modelo a comparar contra la EM del resto de los mod
+  mod_restante_stdate = startdateMODELOS[[model]]
+  mod_restante_tgdate = targetdateMODELOS[[model]]
+  MODELO_restante = MODELOS[[model]]
+  
+  mod_ensamble_stdate = startdateMODELOS[-model]
+  mod_ensamble_tgdate = targetdateMODELOS[-model]
+  MODELOS_ensamble = MODELOS[-model]
+  
+  # array a completar 
+  MME_nmenos1 <- array(NA, dim = c(66,76,28,(nmodels-1),length(sabadoMME)))
+  mod_aparte <- array(NA, dim = c(66,76,28,length(sabadoMME)))
+  
+  for (i in 1:length(sabadoMME)) { # Por cada sabado
+    
+    # Semana y lead en cuestion del MME
+    startweek = seq.Date(sabadoMME[i]-7,sabadoMME[i]-1,by=1) #desde el sabado anterior al viernes
+    leadMME = targetdateMME[,i]
+    
+    # MODELO RESTANTE ---------------------------------------------
+    # Que startdate cae en la semana del MME para el modelo restante
+    stdt_restante = mod_restante_stdate %in% startweek
+    # Tomar la inicializacion mas cercana al sabado de pronostico
+    if (sum(stdt_restante)>1) {stdt_restante = last(which(stdt_restante))}
+    
+    # Evaluo el modelo restante en las fechas que coincide con MME
+    target_restante = mod_restante_tgdate[,stdt_restante] %in% leadMME
+    modelo_objetivo_rest = MODELO_restante[,,target_restante,stdt_restante]
+    
+    # Llenar con NA si faltan dias 
+    modelo_objetivo_rest = CompletarFaltante(target_restante, 
+                                             stdt_restante, 
+                                             modelo_objetivo_rest)
+    
+    # MEDIA ENSAMBLE N-1 MODELOS ----------------------------------
+    for (mod in 1:(nmodels-1)) { # por cada modelo
+      # Que startdate cae en la semana del MME para cada modelo
+      stdt = mod_ensamble_stdate[[mod]] %in% startweek
+      
+      # Tomar la inicializacion mas cercana al sabado de pronostico
+      if (sum(stdt)>1) {    # Hay mas de un inicio en la semana
+        stdt = last(which(stdt))}
+      
+      # Quiero saber que lead hace que coincida el targetdate del modelo con el targetdate del MME 
+      leadMODELO = mod_ensamble_tgdate[[mod]]
+      target = leadMODELO[,stdt] %in% leadMME
+      
+      # Evaluo el modelo en esas fechas
+      modelo = MODELOS_ensamble[[mod]]
+      modelo_objetivo = modelo[,,target,stdt]
+      
+      # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
+      modelo_objetivo = CompletarFaltante(target, stdt, modelo_objetivo)
+      
+      
+      # Guardo
+      MME_nmenos1[,,,mod,i] <- modelo_objetivo
+      mod_aparte[,,,i] <- modelo_objetivo_rest
+      
+    } # End loop media ensamble
+    
+  } # End loop sabados  
+  # Promedio sobre los modelos (cuarta dimension)
+  MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)
+
+  cor_mod[,,,model] <- Predictibilidad(mod_aparte, MME_pro, length(sabadoMME))
+  
+} # End loop models
+  
+d=ggDataFrame(cor_mod[,,1,1])
+
+GraphDiscrete(d,Breaks = seq(0,1,0.2), Titulo = "pr",Paleta = "YlOrRd",Label = "acc",Direccion = 1)
+
+
+
+
 
