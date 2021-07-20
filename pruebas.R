@@ -242,7 +242,7 @@ GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
     lon = c(291,288,293,298),
     lat = c(-30,-40,-46,-40))
   datasacz = data.frame( lon = c(300,300,310,317),
-                         lat=c(-3,-15,-30,-21)
+                         lat=c(-1,-15,-30,-21)
   )
   # norte, oeste, sur, este (se lee de izq a derecha)
   # Grafico en si 

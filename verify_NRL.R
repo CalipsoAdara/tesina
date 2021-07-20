@@ -21,6 +21,8 @@ library("ggplot2")
 library("gridExtra")
 library("grid")
 
+# Cargo mis funciones
+source("/home/lucia.castro/tesina/funciones.R")
 # ----------------------------------------------------------------------------------------------
 # Funcion que toma los campos de reanalisis para cada semana respecto al startdate y calcula
 # la media 
@@ -151,9 +153,8 @@ dt.var <- reshape2::melt(var, value.name = "z")
 #---------------------------------------------------------------------------------------
 g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.25),Label = "RMSE",Paleta = "YlOrRd", Direccion = "1")
 g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "ME",Paleta = "RdBu",Direccion = "-1")
-g3 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(0,1,0.10), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
-g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "VAR",Paleta = "RdBu",Direccion = "-1")
-
+g3 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
+g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
 
 
 fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX NRL-NESM tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))

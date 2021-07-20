@@ -8,6 +8,11 @@ rm(list=ls())
 
 # Call libraries to be used
 library(abind)
+library(lubridate)
+library(data.table)
+library(scales)
+library(ggpubr)
+library("grid")
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
@@ -56,6 +61,11 @@ CompletarFaltante <- function(Target, Stdt, ModeloObjetivo) {
       
       modelo_objetivo = abind(ModeloObjetivo,mod.faltante)
     }
+  }
+  
+  # Si el modelo esta completo no hacer nada
+  if (sum(Target)==28) {
+     modelo_objetivo = ModeloObjetivo
   }
   return(modelo_objetivo)
 }
@@ -230,9 +240,9 @@ for (model in 1:nmodels) {
     modelo_objetivo_rest = MODELO_restante[,,target_restante,stdt_restante]
     
     # Llenar con NA si faltan dias 
-    modelo_objetivo_rest = CompletarFaltante(target_restante, 
-                                             stdt_restante, 
-                                             modelo_objetivo_rest)
+    modelo_objetivo_rest = CompletarFaltante(Target = target_restante, 
+                                             Stdt = stdt_restante, 
+                                             ModeloObjetivo = modelo_objetivo_rest)
     
     # MEDIA ENSAMBLE N-1 MODELOS ----------------------------------
     for (mod in 1:(nmodels-1)) { # por cada modelo
@@ -269,9 +279,26 @@ for (model in 1:nmodels) {
   
 } # End loop models
   
-d=ggDataFrame(cor_mod[,,1,1])
 
-GraphDiscrete(d,Breaks = seq(0,1,0.2), Titulo = "pr",Paleta = "YlOrRd",Label = "acc",Direccion = 1)
+# G R A F I C O S ------------------------------------
+
+for (m in 1:nmodels) {
+  
+  # Renombro dimensiones 
+  data = cor_mod[,,,m]
+  dimnames(data) <- list(x = seq(265,330,1), 
+                         y = rev(seq(-60,15,1)), 
+                         week = c("Week 1", "Week 2","Week 3", "Week 4"))
+  
+  # Armo data.frames para graficar
+  df <- reshape2::melt(data, value.name = "z")
+  
+  titl = paste0("Predictibilidad ", models[m],"tasa (99-15, Oct-Mar)")
+  g <- GraphDiscreteMultiple(df, Breaks = seq(0,1,0.2) , Label = "ACC", Paleta = "YlOrRd",Direccion = "1")
+  fig <- grid.arrange(g, ncol = 1,top = textGrob(titl,gp=gpar(fontsize=13,font=3)))
+  fn <- paste0("/home/lucia.castro/SubX_processed_Rdata/predic_",models[m],".png")
+  ggsave(filename=fn,plot=fig,width = 10, height = 4)
+}
 
 
 
