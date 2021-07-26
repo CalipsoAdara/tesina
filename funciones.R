@@ -354,12 +354,14 @@ GraphMultiplePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Di
   # Crear data frame para los puntos
   lon = seq(265,330,1)
   lat = rev(seq(-60,15,1))
+  sem = c("Week 1", "Week 2", "Week 3", "Week 4")
   
   # Busca los indices donde hay TRUE y los evalua en las lon y lat. Asi recibe la informacion GEOM_POINT
   mtx.posicion = which(ArLogic, arr.ind = T)
   punto_lon = lon[mtx.posicion[,1]]
   punto_lat = lat[mtx.posicion[,2]]  
-  df.puntos = data.frame(lon = punto_lon, lat = punto_lat)
+  semana = sem[mtx.posicion[,3]]
+  df.puntos = data.frame(lon = punto_lon, lat = punto_lat, week = semana)
   
   # Grafico en si 
   ggplot() +
@@ -388,6 +390,45 @@ GraphMultiplePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Di
     coord_cartesian()  +
     theme(plot.title = element_text(hjust = 0.5))
   
+}
+#------------------------------------------------------------------------------------------------
+# Funcion que grafica histogramas multiples
+
+GraphHistMultiple <- function(Data, Breaks, N, LabelY) {
+  ## Data: Data frame con los datos. Debe tener una columna llamanda "week" para hacer las separaciones
+  # y una columna llamada "media" con los numeros
+  ## Breaks: Vector con los ticks del eje x
+  ## N: Cantidad de datos. Sirve para hacer la frecuencia relativa
+  ## LabelY: Character. Titulo en el eje y
+  
+  
+  # Cargo paquetes
+  library(ggplot2)
+  
+  Max = max(Breaks)
+  Min = min(Breaks)
+  
+  ggplot(data = Data, aes(x = media)) +
+    geom_histogram(aes(y = stat(count) / N),
+                   binwidth = 0.5, color ="white" , fill = "indianred1") +
+    scale_x_continuous(breaks = Breaks, limits = c(Min,Max)) +
+    
+    scale_y_continuous(labels = scales::percent) +
+    
+    #xlab("Anomalia T2M") +
+    ylab(LabelY) +
+    theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    facet_grid( .~ week) +
+    
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    theme(plot.title = element_text(hjust = 0.5))
 }
 #------------------------------------------------------------------------------------------------
 # Funcion que toma dos arrays de tres dimensiones y los correlaciona punto a punto en la tercera
