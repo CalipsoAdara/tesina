@@ -239,41 +239,43 @@ GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
   punto_lat = lat[tito[,2]]  
   df=data.frame(lon = punto_lon, lat= punto_lat)
   datapoli = data.frame(
-    lon = c(291,288,293,298),
-    lat = c(-30,-40,-46,-40))
+    lon = c(291,288,291,298),
+    lat = c(-30,-40,-53,-40))
   datasacz = data.frame( lon = c(300,300,310,317),
-                         lat=c(-1,-15,-30,-21)
-  )
+                         lat=c(-1,-15,-30,-21))
+  
+  datasacz <- data.frame(lon = c(305,305,310,321),
+                     lat = c(-10,-25,-30,-10))
   # norte, oeste, sur, este (se lee de izq a derecha)
   # Grafico en si 
   ggplot() +
     geom_contour_fill(data=Data,aes(x, y, z = z),breaks = c(-6,-4,-2,0,2,4,6)) +
     #geom_point(data=df, aes( x=lon, y=lat), col="black",size=0.5, na.rm = T)+
-    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
-    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
-    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
-                         labels = Breaks,
-                         
-                         breaks = Breaks,
-                         limits = c(min(Breaks), max(Breaks)),
-                         guide = guide_colorstrip()) +
-    
-    ggtitle(Titulo)  +
-    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
-    geom_polygon(data= datapoli, aes(x=lon, y=lat),color= 'slateblue',fill= NA,size=0.8)+
-    geom_polygon(data= datasacz, aes(x=lon, y=lat),color= 'seagreen',fill= NA,size=0.8)
-  theme(axis.text=element_text(size=12))+
-    theme(strip.text.x = element_text(size = 12, colour = "black"))+
-    
-    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
-    theme(panel.background = element_rect(fill = "white",colour = "grey70",
-                                          size = 2, linetype = "solid"),
-          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
-                                          colour = "grey86"),
-          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
-                                          colour = "grey86")) +
-    
-    theme(plot.title = element_text(hjust = 0.5))
+  #   scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+  #   scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+  #   scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
+  #                        labels = Breaks,
+  #                        
+  #                        breaks = Breaks,
+  #                        limits = c(min(Breaks), max(Breaks)),
+  #                        guide = guide_colorstrip()) +
+  #   
+  #   ggtitle(Titulo)  +
+  #   geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+   geom_polygon(data= datapoli, aes(x=lon, y=lat),color= 'slateblue',fill= NA,size=0.8)+
+     geom_polygon(data= datasacz, aes(x=lon, y=lat),color= 'seagreen',fill= NA,size=0.8)
+  # theme(axis.text=element_text(size=12))+
+  #   theme(strip.text.x = element_text(size = 12, colour = "black"))+
+  #   
+  #   theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+  #   theme(panel.background = element_rect(fill = "white",colour = "grey70",
+  #                                         size = 2, linetype = "solid"),
+  #         panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+  #                                         colour = "grey86"),
+  #         panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+  #                                         colour = "grey86")) +
+  #   
+  #   theme(plot.title = element_text(hjust = 0.5))
   
 }
 library(mgcv)
@@ -322,8 +324,6 @@ coord = data.frame(lon=rep(lon,length(lat)),
                    lat=rep(lat, each=length(lon)))
 
 library(secr)
-pointsInPolygon(coord,poly1) 
-lat
-cbind(lon=rep(lon,length(lat)),
-      lat=rep(lat, each=length(lon)))
+e=pointsInPolygon(coord,poly1) 
 
+Data[,,pointsInPolygon(coord,poly1) ]

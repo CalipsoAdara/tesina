@@ -125,6 +125,45 @@ for (week in 1:4) {
   
 } # End loop week
 
+#-------------------------------------------------
+# Busco el rho1 para calcular el tamaño de muestra efectivo y obtener significancia
+# Autocorrelacion con lag 1 en las observaciones
+
+# array a completar. Un rho1 por punto
+rho1 = array(NA, dim = c(66,76)) 
+
+for (lon in 1:66) {
+  for (lat in 1:76) {
+    # Media semanal
+    df.medsemana = PromediarSemanas(lon,lat)
+    prom_semanal = df.medsemana$Promedio
+    
+    # Elimino posiciones donde a abril le sigue octubre para no correlacionarlos
+    # (en la semana1 se quita ultima sem de abril, en la semana2 se quita primera sem de oct)
+    salto_abroct = which(diff(month(df.medsemana$Inicio))==6)
+    
+    #tomo las semanas a correlacionar
+    semana1 = prom_semanal[1:(length(prom_semanal)-1)]
+    semana1 = semana1[-salto_abroct]     # quita ultima sem abril
+    semana2 = prom_semanal[2:length(prom_semanal)]
+    semana2 = semana2[-(salto_abroct+1)] # quita primera sem oct
+    
+    # correlacion y guardado
+    corlag1 = cor(semana1, semana2, use="pairwise.complete.obs", method = "pearson") 
+    rho1[lon,lat] <- corlag1
+  }
+}
+
+# Calculo estadistico de prueba
+
+# RHO1 sirve para todas las weeks (1,2.3 y 4). Repito el tamaño de muestra para cada semana
+n_eff = fechas_pronosticos*((1 - rho1)/(1 + rho1))
+n_eff = array(n_eff, dim = c(66,76,4))
+t = (acc * sqrt(n_eff - 2)) / sqrt(1-acc^2)
+
+# Significancia de 0.05 y grados de libertad 
+critc = qt(p=0.95, df = trunc(n_eff))
+test = t < critc
 
 
 # Renombro dimensiones 
@@ -157,10 +196,19 @@ dt.var <- reshape2::melt(var, value.name = "z")
 #---------------------------------------------------------------------------------------
 g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.25),Label = "RMSE",Paleta = "YlOrRd", Direccion = "1")
 g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "ME",Paleta = "RdBu",Direccion = "-1")
-g3 <- GraphDiscreteMultiple(Data = dt.acc, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
+g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
 g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
 
 fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX ESRL-FIMr1p1 tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
 ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_ESRL.png",plot=fig,width = 10, height = 11)
 
+#---------------------------------------------------------------------------------------
+#  Guardado de datos
+#---------------------------------------------------------------------------------------
+lon = dimnames(ar.model)$X
+lat = dimnames(ar.model)$Y
+fechas = dimnames(ar.model)$startdate
+dimnames(model_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
+                                      "week" = c("Week 1","Week 2","Week 3","Week 4"))
 
+saveRDS(model_media_semanal, paste0("./SubX_processed_Rdata/modelweek_ESRL.rds"))

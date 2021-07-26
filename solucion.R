@@ -9,7 +9,7 @@ rm(list=ls())
 # SETEO DIRECTORIO
 setwd("/home/lucia.castro/")
 
-groups = c('GMAO','RSMAS','ESRL','ECCC','EMC')  
+groups = c('GMAO','RSMAS','ESRL','ECCC','EMC',"NRL")  
 
 for (grupo in groups) {
   
