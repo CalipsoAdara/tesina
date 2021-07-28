@@ -496,6 +496,7 @@ ObsMediaSemanal <- function(PronoDate,TargetDate,Anomalia){
 ModelMediaSemanal <- function(Modelo, PronoDate){
   # Modelo: Array del modelo con dimension de lon, lat, leads y cada fecha pronostico
   # PronoDate: numero de la cantidad de startdates se tiene para el periodo. Por ej: 612
+  
   # Creo variable a llenar
   model_media_semanal <- array(NA, dim = c(66,76,PronoDate,4))
   
@@ -510,3 +511,22 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
   return(model_media_semanal)
 }
 
+#-----------------------------------------------------------------------------------------
+# Funcion que devuelve las fechas donde se alcanzaron ciertos percentiles
+FechasPercentiles <- function(DF,Variable) {
+  ## DF: Dataframe con la primera columna de fechas y alguna columna con valores
+  ## Variable: columna de dataframe con los valores 
+  
+  percentil = quantile(Variable, c(0.1,0.9))
+  
+  # Busco solo valores mayor al P90 y menores al P10
+  p10 = Variable < percentil[1]
+  p90 = Variable > percentil[2]
+  
+  # Evalua el dataframe en las filas TRUE y tomo la primer columna (fechas)
+  fechas10 <- DF[p10,][1,]
+  fechas90 <- DF[p90,][1,]
+  
+  return(fechas10,fechas10)
+}
+#-----------------------------------------------------------------------------------------

@@ -80,7 +80,7 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
 #---------------------------------------------------------------------------------------
 #  Main Program  
 #---------------------------------------------------------------------------------------
-ar.model = readRDS("/home/lucia.castro/SubX_processed_Rdata/MME_OA.rds")
+ar.model = readRDS("/home/lucia.castro/SubX_processed_Rdata/MME_OM.rds")
 targetdate = readRDS("/home/lucia.castro/SubX_processed_Rdata/targetdate_MME_OA.rds")
 ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
 
@@ -205,8 +205,8 @@ ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_MME.png",plo
 #---------------------------------------------------------------------------------------
 #  Guardado de datos
 #---------------------------------------------------------------------------------------
-lon = dimnames(ar.model)$X
-lat = dimnames(ar.model)$Y
+lon = dimnames(ar.model)$lon
+lat = dimnames(ar.model)$lat
 fechas = dimnames(ar.model)$startdate
 dimnames(model_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
                                       "week" = c("Week 1","Week 2","Week 3","Week 4"))

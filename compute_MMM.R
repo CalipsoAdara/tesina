@@ -113,7 +113,6 @@ periodo_OM <- periodo[oct_mar]
 
 # Obtengo sabados y sus respectivos viernes siguientes para el periodo
 sabado = periodo_OM[weekdays(periodo_OM)=="Saturday"][-1] # Borra el primer sabado (1999-01-02) que no tiene semana anterior 
-vier_sig = periodo_OM[weekdays(periodo_OM)=="Friday"][-(1:2)]  # Borra el primer viernes (1999-01-01) y segundo (1999-01-08) que no tiene sabado asociado
 
 # Los sabados son la fecha de inicio del multimodelo. En la semana anterior a ese sabado busco los
 # modelos inicializados. La semana objetivo empieza el sabado y termina el viernes siguiente.
@@ -197,6 +196,9 @@ for (i in 1:length(sabadoMME)) { # Por cada sabado
 # Promedio sobre los modelos (cuarta dimension)
 MME_pro = apply(MME, c(1,2,3,5), mean, na.rm = T)
 
+# Nombro dimensiones
+dimnames(MME_pro) <- list("lon" = seq(265,330,1), "lat" = rev(seq(-60,15,1)),
+                          "lead" = 1:28, "startdate"  = as.character(sabadoMME))
 
 # Todo listo para empezar la verificación octubre-marzo. Guardo para limpiar y comenzar la verificación.
 saveRDS(MME_pro,paste0("./MME_OM.rds"))

@@ -14,19 +14,40 @@ setwd("/home/lucia.castro/")
 library(secr)
 library(reshape2)
 
-# Cargo datos obs y modelo
-grupos = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL")
-models = c('FIMr1p1','GEM','GEFS','GEOS_V2p1','CCSM4','NESM')
-nmodels = length(models)
+# Cargo mis funciones
+source("/home/lucia.castro/tesina/funciones.R")
 
-anom_media_semanal <- readRDS("./SubX_processed_Rdata/modelweek_GMAO.rds")
+# -------------------------------------------------------------------------------------
+# Funcion que devuelve las fechas donde se alcanzaron ciertos percentiles
+FechasPercentiles <- function(DF,Variable) {
+  ## DF: Dataframe con la primera columna de fechas y alguna columna con valores
+  ## Variable: columna de dataframe con los valores 
+  
+  percentil = quantile(Variable, c(0.1,0.9))
+  
+  # Busco solo valores mayor al P90 y menores al P10
+  p10 = Variable < percentil[1]
+  p90 = Variable > percentil[2]
+  
+  # Evalua el dataframe en las filas TRUE y tomo la primer columna (fechas)
+  fechas10 <- DF[p10,][1,]
+  fechas90 <- DF[p90,][1,]
+  
+  return(fechas10,fechas10)
+}
+# -----------------------------------------------------------------------------------
+
+# Cargo datos obs y modelo
+grupos = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL","MME")
+models = c('FIMr1p1','GEM','GEFS','GEOS_V2p1','CCSM4','NESM',"SAT")
+nmodels = length(models)
 
 # Lista con los datos a llenar
 modelweek <- list()
 
 for (i in 1:nmodels) {
   inpath = paste0("./SubX_processed_Rdata/modelweek_",grupos[i],".rds")
-  modelweek[i] <- readRDS(inpath)
+  modelweek[[i]] <- readRDS(inpath)
 }
 
 
@@ -40,12 +61,13 @@ SACZ <- data.frame(x_coords = c(305,305,310,321,305),
 for (mod in 1:nmodels) {
   
   # Cantidad de fechas de inicializacion del modelo
-  inicios <- dim(model_media_semanal)[3]
+  modelo = modelweek[[mod]]
+  inicios <- dim(modelo)[3]
   
   # Convierto en Data frame 
-  df = melt(model_media_semanal)
+  df = melt(modelo)
   
-  # Restringir el data table al area del poligono
+  # Restringir el data table al area del poligono (primeras 2 col son lat y lon)
   puntossacz=pointsInPolygon(df[,1:2],SACZ) 
   puntossp=pointsInPolygon(df[,1:2],SP) 
   df_sacz = df[puntossacz,]
@@ -81,14 +103,40 @@ for (mod in 1:nmodels) {
   title = paste0("SubX ", grupos[mod],"-",models[mod], " T2MA (99-15, Oct-Mar)")
   fig <- grid.arrange(g1,g2, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
   fname <- paste0("./SubX_processed_Rdata/hist_",grupos[mod],".png")
-  ggsave(filename=fname,plot=fig,width = 10, height = 11)
+  ggsave(filename=fname,plot=fig,width = 15, height = 10)
+  
+  # Percentiles
+  # quiero el p90 y el p10
+  
+  percentil_sacz = quantile(med_sacz$media, c(0.1,0.9))
+  percentil_sp = quantile(med_sp$media, c(0.1,0.9))
+  
+  l = sem1$media > percentil[3]
+  
+  sem1[l,][,1]
+  lista <- list()
   
 
 }
 
-
-
-
+# -------------------------------------------------------------------------------------
+# Funcion que devuelve las fechas donde se alcanzaron ciertos percentiles
+FechasPercentiles <- function(DF,Variable) {
+  ## DF: Dataframe con la primera columna de fechas y alguna columna con valores
+  ## Variable: columna de dataframe con los valores 
+  
+  percentil = quantile(Variable, c(0.1,0.9))
+  
+  # Busco solo valores mayor al P90 y menores al P10
+  p10 = Variable < percentil[1]
+  p90 = Variable > percentil[2]
+  
+  # Evalua el dataframe en las filas TRUE y tomo la primer columna (fechas)
+  fechas10 <- DF[p10,][1,]
+  fechas90 <- DF[p90,][1,]
+  
+  return(fechas10,fechas10)
+}
 
 
 # Convierto en Data frame 
@@ -134,14 +182,71 @@ ggplot(data = medi, aes(x = media)) +
 
 
 # Percentil 
-sem1 = medi[week=="Week 1"]
+sem1 = med_sacz[week=="Week 1"]
 percentil = quantile(sem1$media, c(0.9,0.95,0.99))
 
 l = sem1$media > percentil[3]
 
-sem1[l,]
+sem1[l,][,1]
+lista <- list()
+lista[[2]] <-sem1[l,][,1]
+lista[[3]] <- f
+f=sem1[l,][,1][-1]
+
+a <- c(1,3,5,7,9)
+b <- c(3,6,8,9,10)
+d <- c(2,3,4,5,7,9)
+Reduce(intersect, lista)
 
 DatoExtremo <- function() {
   
   # 
+  
+
+}
+
+## funcion para lineas
+
+GraphHistMultiple <- function(Data, Breaks, N, LabelY) {
+  ## Data: Data frame con los datos. Debe tener una columna llamanda "week" para hacer las separaciones
+  # y una columna llamada "media" con los numeros
+  ## Breaks: Vector con los ticks del eje x
+  ## N: Cantidad de datos. Sirve para hacer la frecuencia relativa
+  ## LabelY: Character. Titulo en el eje y
+  
+  
+  # Cargo paquetes
+  library(ggplot2)
+  
+  Max = max(Breaks)
+  Min = min(Breaks)
+  
+  Data$start <- as.Date(med_sacz$start)
+  
+  ggplot(data = Data, aes(x = start, y = media)) +
+    geom_line(color = "paleturquoise3", size = 0.7) +
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    theme(plot.title = element_text(hjust = 0.5))
+    
+    
+    #xlab("Anomalia T2M") +
+    ylab(LabelY) +
+    theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    facet_grid( .~ week) +
+    
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    theme(plot.title = element_text(hjust = 0.5))
 }
