@@ -180,6 +180,8 @@ for (lon in 1:66) {
   }
 }
 
+saveRDS(rho1, file = "./SubX_processed_Rdata/rho1.rds")
+
 # Calculo estadistico de prueba
 
 # RHO1 sirve para todas las weeks (1,2.3 y 4). Repito el tamaño de muestra para cada semana
@@ -222,7 +224,7 @@ dt.var <- reshape2::melt(var, value.name = "z")
 #---------------------------------------------------------------------------------------
 g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.25),Label = "RMSE",Paleta = "YlOrRd", Direccion = "1")
 g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "ME",Paleta = "RdBu",Direccion = "-1")
-g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
+g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlGn",Direccion = "1")
 g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
 
 
@@ -237,5 +239,8 @@ lat = dimnames(ar.model)$Y
 fechas = dimnames(ar.model)$startdate
 dimnames(model_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
                                       "week" = c("Week 1","Week 2","Week 3","Week 4"))
+dimnames(anom_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
+                                     "week" = c("Week 1","Week 2","Week 3","Week 4"))
 
 saveRDS(model_media_semanal, paste0("./SubX_processed_Rdata/modelweek_GMAO.rds"))
+saveRDS(anom_media_semanal, paste0("./SubX_processed_Rdata/obsweek_GMAO.rds"))

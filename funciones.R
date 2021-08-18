@@ -145,16 +145,22 @@ GraphDiscreteMultiple <- function(Data, Breaks, Label, Paleta, Direccion){
   library("ggplot2")
   library("maps")
   library("RColorBrewer")
+  library(scales)
   
   # Seteo los parametros de mapa y gradiente 
   mapa<-map_data("world2") 
   min <- min(Data$z, na.rm = T)
   max <- max(Data$z, na.rm = T)
-  Data$z=oob_squish(Data$z,range = c(min(Breaks),max(Breaks)))
+  Data$z <- oob_squish(Data$z,range = c(min(Breaks),max(Breaks)))
+  
+  # Aqui extiendo un poco la escala para que cubra todo 
+  fillbreaks = Breaks
+  fillbreaks[length(Breaks)] <- max(Breaks)*1.1
+  fillbreaks[1] <- min(Breaks)*1.1
   
   # Grafico en si 
   ggplot() +
-    geom_contour_fill(data=Data,aes(x, y, z = z),breaks = Breaks) +
+    geom_contour_fill(data=Data,aes(x, y, z = z),breaks = fillbreaks) +
     scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
     scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
     scale_fill_distiller(name=Label,palette=Paleta,direction=as.numeric(Direccion),
@@ -295,7 +301,7 @@ GraphDiscretePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Di
   # Grafico en si 
   ggplot() +
     geom_contour_fill(data=Data,aes(x, y, z = z),breaks = Breaks) +
-    geom_point(data=df.puntos, aes(x=lon, y=lat), col="black",size=0.5, na.rm = T) +
+    geom_point(data=df.puntos, aes(x=lon, y=lat), col="black",size=0.5,alpha = 0.5, na.rm = T) +
     scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
     scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
     scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
@@ -366,7 +372,7 @@ GraphMultiplePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Di
   # Grafico en si 
   ggplot() +
     geom_contour_fill(data=Data,aes(x, y, z = z),breaks = Breaks) +
-    geom_point(data=df.puntos, aes(x=lon, y=lat), col="black",size=0.5, na.rm = T) +
+    geom_point(data=df.puntos, aes(x=lon, y=lat), col="black",alpha = 0.5,size=0.1, na.rm = T) +
     scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
     scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
     scale_fill_distiller(name=Label,palette=Paleta,direction=as.numeric(Direccion),
@@ -394,12 +400,13 @@ GraphMultiplePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Di
 #------------------------------------------------------------------------------------------------
 # Funcion que grafica histogramas multiples
 
-GraphHistMultiple <- function(Data, Breaks, N, LabelY) {
+GraphHistMultiple <- function(Data, Var, Breaks, N, LabelY, LimY) {
   ## Data: Data frame con los datos. Debe tener una columna llamanda "week" para hacer las separaciones
-  # y una columna llamada "media" con los numeros
+  ## Var: Character. La columna del data frame con los valores numericos
   ## Breaks: Vector con los ticks del eje x
   ## N: Cantidad de datos. Sirve para hacer la frecuencia relativa
   ## LabelY: Character. Titulo en el eje y
+  ## LimY: Vector de dos elementos indicando el max y min del eje y. EJ c(0,0.40)
   
   
   # Cargo paquetes
@@ -408,12 +415,17 @@ GraphHistMultiple <- function(Data, Breaks, N, LabelY) {
   Max = max(Breaks)
   Min = min(Breaks)
   
-  ggplot(data = Data, aes(x = media)) +
-    geom_histogram(aes(y = stat(count) / N),
-                   binwidth = 0.5, color ="white" , fill = "indianred1") +
+  ggplot(data = Data, aes(x = get(Var),fill = fuente)) +
+    geom_histogram(aes(y = (stat(count) / N)), position = "identity",
+                   binwidth = 0.5, color ="white" ) +
+    # grafica el histograma de nuevo con transparecia para que se diferencie
+    # donde se superponen los histogramas
+    geom_histogram(aes(y = (stat(count) / N)), position = "identity",
+                   binwidth = 0.5, alpha = 0.5 ) +
     scale_x_continuous(breaks = Breaks, limits = c(Min,Max)) +
     
-    scale_y_continuous(labels = scales::percent) +
+    scale_y_continuous(labels = scales::percent, limits = LimY) +
+    scale_fill_manual(values=c("#b4e956", "#e956b4", "#56B4E9")) +
     
     #xlab("Anomalia T2M") +
     ylab(LabelY) +
@@ -429,6 +441,116 @@ GraphHistMultiple <- function(Data, Breaks, N, LabelY) {
           panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                           colour = "grey86")) +
     theme(plot.title = element_text(hjust = 0.5))
+}
+#------------------------------------------------------------------------------------------------
+# Funcion para graficar multiples boxplots
+
+GraphBoxplotMultiple <- function(Data,Var,Grupo,Week, DataObs, VarObs, Titulo){
+  # https://waterdata.usgs.gov/blog/boxplots/
+  ## Data: Data frame con los datos. 
+  ## Var: Character. La columna del data frame con los valores numericos
+  ## Grupo: Character. La columna del data frame que indica los grupos de boxplots. Ej: "modelo"
+  ## Week: Character. La columna del data frame que indica cuantos graficos hay. Normalmente es por week
+  ## DataObs: Data frame con los datos de observaciones 
+  ## VarObs: Character. La columna del data frame obs con la variable
+  ## Titulo: Character. Titulo del grafico
+  
+  g <- ggplot() +
+    geom_boxplot(data = Data, aes(y = get(Var), color = get(Grupo)),
+                 notch=TRUE, outlier.shape =  NA) +
+    geom_boxplot(data = DataObs, aes(y=get(VarObs),x= -0.5),
+                 color= "black", width = 0.1,outlier.shape =  NA) +
+    #, varwidth = TRUE
+    
+    ylim(-3,3) +
+    facet_wrap( .~ get(Week)) +
+    
+    
+    theme(axis.ticks.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.x = element_blank(),
+          legend.title = element_blank()) +
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"),
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    
+    annotate(geom="text", x=-0.5, y=0.2, label="CPC",
+             color="black", size = 3) +
+    ggtitle(Titulo) +
+    theme(plot.title = element_text(hjust = 0.5))
+  
+  return(g)
+}
+#------------------------------------------------------------------------------------------------
+# 
+# Funcion para graficar multiples boxplots donde el final de las lineas son el maximo y minimo
+GraphBoxplotMultiple2 <- function(Data,Var,Grupo,Week, DataObs, VarObs, Titulo){
+  # https://waterdata.usgs.gov/blog/boxplots/
+  ## Data: Data frame con los datos. 
+  ## Var: Character. La columna del data frame con los valores numericos
+  ## Grupo: Character. La columna del data frame que indica los grupos de boxplots. Ej: "modelo"
+  ## Week: Character. La columna del data frame que indica cuantos graficos hay. Normalmente es por week
+  ## DataObs: Data frame con los datos de observaciones 
+  ## VarObs: Character. La columna del data frame obs con la variable
+  ## Titulo: Character. Titulo del grafico
+  
+  # Acomodo los datos para poder hacer los graficos
+  dt = Data[,list(mediana=median(get(Var),na.rm=TRUE),
+                  min = min(get(Var),na.rm=TRUE),
+                  max = max(get(Var),na.rm=TRUE),
+                  p25 = quantile(get(Var),0.25),
+                  p75 = quantile(get(Var),0.75)),by=.(get(Week),get(Grupo))]
+  
+  dt.obs = DataObs[,list(mediana=median(get(VarObs),na.rm=TRUE),
+                         min = min(get(VarObs),na.rm=TRUE),
+                         max = max(get(VarObs),na.rm=TRUE),
+                         p25 = quantile(get(VarObs),0.25),
+                         p75 = quantile(get(VarObs),0.75))]
+  
+  # Agrego columna con las posiciones en el eje x. 7 modelos y 4 week
+  dt = dt[,x:= rep(1:7,each=4)]
+  
+  # Cambio nombre de la columna
+  setnames(dt,"get",Week)
+  setnames(dt,"get.1",Grupo)
+  
+  
+g <-  ggplot() +
+  
+    geom_boxplot(data = promedio, aes(x=x,ymin = min, lower = p25, middle = mediana,
+                                  upper = p75, ymax = max, color = modelo),stat = "identity")+
+    geom_boxplot(data = dt.obs,aes(x=-0.5,ymin = min, lower = p25, middle = mediana,
+                                  upper = p75, ymax = max),stat = "identity",
+                                  color= "black", width = 1)+
+    facet_wrap( .~ get(Week)) +
+    
+    ylim(-5,5) +
+    
+     theme(axis.ticks.x = element_blank(),
+           axis.title.y = element_blank(),
+           axis.text.x = element_blank(),
+           axis.title.x = element_blank(),
+           legend.title = element_blank()) +
+     theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+     theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                           size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"),
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    
+    annotate(geom="text", x=-0.5, y=(dt.obs$mediana +0.3), label="CPC",
+              color="black", size = 3) +
+    ggtitle(Titulo) +
+    theme(plot.title = element_text(hjust = 0.5))
+    
+   return(g)
+
 }
 #------------------------------------------------------------------------------------------------
 # Funcion que toma dos arrays de tres dimensiones y los correlaciona punto a punto en la tercera
@@ -510,7 +632,34 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
   
   return(model_media_semanal)
 }
-
+# ----------------------------------------------------------------------------------------------
+# Funcion que calcula la media semanal en un punto de grilla 
+PromediarSemanas <-function(Longitud, Latitud){
+  ## Longitud: numeric del 1 al 66 indicando longitud
+  ## Latitud: numeric del 1 al 76 indicando latitud
+  
+  # tomo un punto (todos los dias) y acomodo en un array con la semana en las columnas
+  punto = ar.anom[Longitud, Latitud,]
+  dias = length(punto)
+  t2m_punto = array(punto,dim=c(7,floor(dias/7))) # Redondea para abajo, quita la ultima 
+  # semana q tiene dos dias
+  prom_semanal = colMeans(t2m_punto, na.rm = T)
+  
+  # A cada valor le asigno la fecha de inicio y final de esa semana
+  ini_sem = seq.Date(as.Date("1999-01-01"),as.Date("2016-12-31"),by=7)
+  ini_sem = ini_sem[-length(ini_sem)] # quito ultima semana
+  df.promsem = data.frame("Inicio" = ini_sem,
+                          "Final" = ini_sem+6, 
+                          "Promedio" = prom_semanal)
+  
+  # Restringo de octubre a abril
+  OA = c(1,2,3,4,10,11,12)
+  month(df.promsem$Inicio)
+  oct_abr = which(month(df.promsem$Inicio) %in% OA )
+  
+  return(df.promsem[oct_abr,])
+}  
+#---------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------
 # Funcion que devuelve las fechas donde se alcanzaron ciertos percentiles
 FechasPercentiles <- function(DF,Variable) {
@@ -527,6 +676,53 @@ FechasPercentiles <- function(DF,Variable) {
   fechas10 <- DF[p10,][1,]
   fechas90 <- DF[p90,][1,]
   
-  return(fechas10,fechas10)
+  return(list(fechas10,fechas90))
+}
+# -----------------------------------------------------------------------------------
+# Funcion que dado un data frame realiza un promedio espacial pesado por la latitud
+# Devuelve data table con los valores unicos 
+DTPromEspacPesado <- function(DF,Variable,Grupo) {
+  ## DF: Data frame 
+  ## Variable: Columna del data frame con el valor a promediar
+  ## Grupo: Una o mas columnas del data frame que tener en cuenta para hacer 
+  ## el promedio. Ej: c(Semanas, Region)
+  
+  # Promedio en lat y long. Para eso paso a data table
+  dt = as.data.table(DF)
+  
+  # Peso por la latitud 
+  dt = dt[,varlat := get(Variable)*cos(lat*pi/180)]
+  
+  # Hago el promedio y elimina filas repetidas. Luego le cambio el nombre
+  # a la columna porque queda "get"
+  promedio = dt[,list(media=mean(varlat,na.rm=TRUE)),by=.(get(Grupo))]
+  setnames(promedio, "get", Grupo)
+  
+  return(promedio)
+}
+#-----------------------------------------------------------------------------------------
+# Funcion que busca fechas cercanas en particular con fechas extremas
+BuscarFechaExtrema <- function(Ext, Region, Startdate){
+  ## Ext : Data frame. Tabla con las fechas extremas separadas las regiones en columnas
+  ## Region: Character. Alguna de las regiones del datatable ext. Ej: "SACZ", "SP"
+  ## Startdate: Vector con las fechas de inicializacion del modelo
+  
+  # Fuerzo a data table
+  ext = as.data.table(Ext)
+  
+  # Nombre de las columnas para llamar
+  columna = c(paste0(Region,10), paste0(Region,90))
+  
+  # Crea data table con las fechas extremas de la region y otro con
+  # las fechas de inicio totales
+  fecha_region = data.table("region" = as.Date(c(ext[,get(columna[1])],ext[,get(columna[2])])))
+  inicios = data.table("ini" = as.Date(Startdate)) 
+  
+  # Encontrar las posiciones de las fechas extremas mas cercanas, ya que 
+  # no soy exactamente iguales
+  pos_extrema = inicios[fecha_region, on = .(ini = region),roll = "nearest", which = T]
+  
+  return(pos_extrema)
+  
 }
 #-----------------------------------------------------------------------------------------

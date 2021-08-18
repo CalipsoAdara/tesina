@@ -76,7 +76,33 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
   
   return(model_media_semanal)
 }
-
+# ----------------------------------------------------------------------------------------------
+# Funcion que calcula la media semanal en un punto de grilla 
+PromediarSemanas <-function(Longitud, Latitud){
+  ## Longitud: numeric del 1 al 66 indicando longitud
+  ## Latitud: numeric del 1 al 76 indicando latitud
+  
+  # tomo un punto (todos los dias) y acomodo en un array con la semana en las columnas
+  punto = ar.anom[Longitud, Latitud,]
+  dias = length(punto)
+  t2m_punto = array(punto,dim=c(7,floor(dias/7))) # Redondea para abajo, quita la ultima 
+  # semana q tiene dos dias
+  prom_semanal = colMeans(t2m_punto, na.rm = T)
+  
+  # A cada valor le asigno la fecha de inicio y final de esa semana
+  ini_sem = seq.Date(as.Date("1999-01-01"),as.Date("2016-12-31"),by=7)
+  ini_sem = ini_sem[-length(ini_sem)] # quito ultima semana
+  df.promsem = data.frame("Inicio" = ini_sem,
+                          "Final" = ini_sem+6, 
+                          "Promedio" = prom_semanal)
+  
+  # Restringo de octubre a abril
+  OA = c(1,2,3,4,10,11,12)
+  month(df.promsem$Inicio)
+  oct_abr = which(month(df.promsem$Inicio) %in% OA )
+  
+  return(df.promsem[oct_abr,])
+}  
 #---------------------------------------------------------------------------------------
 #  Main Program  
 #---------------------------------------------------------------------------------------
@@ -128,31 +154,7 @@ for (week in 1:4) {
 #-------------------------------------------------
 # Busco el rho1 para calcular el tamaño de muestra efectivo y obtener significancia
 # Autocorrelacion con lag 1 en las observaciones
-
-# array a completar. Un rho1 por punto
-rho1 = array(NA, dim = c(66,76)) 
-
-for (lon in 1:66) {
-  for (lat in 1:76) {
-    # Media semanal
-    df.medsemana = PromediarSemanas(lon,lat)
-    prom_semanal = df.medsemana$Promedio
-    
-    # Elimino posiciones donde a abril le sigue octubre para no correlacionarlos
-    # (en la semana1 se quita ultima sem de abril, en la semana2 se quita primera sem de oct)
-    salto_abroct = which(diff(month(df.medsemana$Inicio))==6)
-    
-    #tomo las semanas a correlacionar
-    semana1 = prom_semanal[1:(length(prom_semanal)-1)]
-    semana1 = semana1[-salto_abroct]     # quita ultima sem abril
-    semana2 = prom_semanal[2:length(prom_semanal)]
-    semana2 = semana2[-(salto_abroct+1)] # quita primera sem oct
-    
-    # correlacion y guardado
-    corlag1 = cor(semana1, semana2, use="pairwise.complete.obs", method = "pearson") 
-    rho1[lon,lat] <- corlag1
-  }
-}
+rho1 = readRDS(file = "./SubX_processed_Rdata/rho1.rds")
 
 # Calculo estadistico de prueba
 
@@ -196,7 +198,7 @@ dt.var <- reshape2::melt(var, value.name = "z")
 #---------------------------------------------------------------------------------------
 g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.25),Label = "RMSE",Paleta = "YlOrRd", Direccion = "1")
 g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "ME",Paleta = "RdBu",Direccion = "-1")
-g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlOrRd",Direccion = "1")
+g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlGn",Direccion = "1")
 g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
 
 
@@ -212,5 +214,8 @@ fechas = dimnames(ar.model)$startdate
 dimnames(model_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
                                       "week" = c("Week 1","Week 2","Week 3","Week 4"))
 
-saveRDS(model_media_semanal, paste0("./SubX_processed_Rdata/modelweek_EMC.rds"))
+dimnames(anom_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
+                                     "week" = c("Week 1","Week 2","Week 3","Week 4"))
 
+saveRDS(model_media_semanal, paste0("./SubX_processed_Rdata/modelweek_EMC.rds"))
+saveRDS(anom_media_semanal, paste0("./SubX_processed_Rdata/obsweek_EMC.rds"))

@@ -327,3 +327,41 @@ library(secr)
 e=pointsInPolygon(coord,poly1) 
 
 Data[,,pointsInPolygon(coord,poly1) ]
+
+# Cargo paquetes
+library("ggplot2")
+library("maps")
+library("RColorBrewer")
+library(scales)
+
+# Seteo los parametros de mapa y gradiente 
+mapa<-map_data("world2") 
+min <- min(Data$z, na.rm = T)
+max <- max(Data$z, na.rm = T)
+Data$z <- oob_squish(Data$z,range = c(min(Breaks),max(Breaks)))
+
+# Grafico en si 
+ggplot() +
+  geom_contour_fill(data=Data,aes(x, y, z = z),breaks = seq(-0.1,0.1,0.025)) +
+  scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+  scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+  scale_fill_distiller(name=Label,palette=Paleta,direction=as.numeric(Direccion),
+                       na.value = "transparent",
+                       breaks = seq(-0.1,0.1,0.025),
+                       limits = c(min(Breaks), max(Breaks)),
+                       guide = guide_colorstrip(),
+                       oob  = scales::squish) +
+  
+  geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+  theme(axis.text=element_text(size=12))+
+  theme(strip.text.x = element_text(size = 12, colour = "black"))+
+  facet_grid( .~ week) +
+  theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+  theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                        size = 2, linetype = "solid"),
+        panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                        colour = "grey86"), 
+        panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                        colour = "grey86")) +
+  coord_cartesian()  +
+  theme(plot.title = element_text(hjust = 0.5))
