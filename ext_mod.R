@@ -9,11 +9,11 @@ setwd("/home/lucia.castro/")
 
 # Call libraries to be used
 library("metR")
-library('pracma')
-library('lubridate')
-library('reshape2')
+#library('pracma')
+#library('lubridate')
+#library('reshape2')
 library('data.table')
-library("RColorBrewer")
+#library("RColorBrewer")
 library("maps")
 library("ggplot2")
 library("gridExtra")
@@ -24,25 +24,28 @@ library(csv)
 source("/home/lucia.castro/tesina/funciones.R")
 
 #--------------------------------------------------------------------------------------------------
-BuscarFechaExtrema <- function(Ext, Region, Startdate){
+BuscarFechaExtrema <- function(Ext, Startdate, Columna){
   ## Ext : Data frame. Tabla con las fechas extremas separadas las regiones en columnas
-  ## Region: Character. Alguna de las regiones del datatable ext. Ej: "SACZ", "SP"
   ## Startdate: Vector con las fechas de inicializacion del modelo
+  ## Columna: Character vector. Columna o Columnas deseadas del data frame EXT
   
   # Fuerzo a data table
   ext = as.data.table(Ext)
   
-  # Nombre de las columnas para llamar
-  columna = c(paste0(Region,10), paste0(Region,90))
-  
-  # Crea data table con las fechas extremas de la region y otro con
-  # las fechas de inicio totales
-  fecha_region = data.table("region" = as.Date(c(ext[,get(columna[1])],ext[,get(columna[2])])))
+  # Crea data table con las fechas de inicio totales
   inicios = data.table("ini" = as.Date(Startdate)) 
+  
+  # Crea data table con las fechas extremas de la region
+  vecfechas <- c()
+  for (n in 1:length(Columna)) {
+    fecha_region = ext[,get(columna[n])]
+    vecfechas = append(vecfechas,fecha_region)
+  }
+  dt.fechas = data.table("region" = as.Date(vecfechas))
   
   # Encontrar las posiciones de las fechas extremas mas cercanas, ya que 
   # no soy exactamente iguales
-  pos_extrema = inicios[fecha_region, on = .(ini = region),roll = "nearest", which = T]
+  pos_extrema = inicios[dt.fechas, on = .(ini = region),roll = "nearest", which = T]
   
   return(pos_extrema)
   
@@ -75,7 +78,8 @@ for (mod in 1:nmodels) {
   for (zona in 1:length(regiones)) {
     
     inicios = dimnames(ar.model)$start
-    extrema = BuscarFechaExtrema(Ext = ext, Region = regiones[zona], Startdate = inicios)
+    colname = c(paste0(regiones[zona],"10"), paste0(regiones[zona],"90"))
+    extrema = BuscarFechaExtrema(Ext = ext, Columna = colname, Startdate = inicios)
     
     model_media_semanal = ar.model[,,extrema,]
     anom_media_semanal = ar.anom[,,extrema,]
