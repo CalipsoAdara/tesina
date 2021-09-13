@@ -127,10 +127,6 @@ SACZ <- data.frame(x_coords = c(305,305,310,321,305),
 
 
 # Listas de percentiles a llenar
-list10_sp <- list()
-list10_sacz <- list()
-list90_sp <- list()
-list90_sacz <- list()
 lista.modelos.sacz <- list()
 lista.modelos.sp <- list()
 
@@ -221,22 +217,10 @@ for (mod in 1:nmodels) {
   # fname <- paste0("./SubX_processed_Rdata/line_",grupos[mod],".png")
   # ggsave(filename=fname,plot=fig3,width = 15, height = 10)
   
-  # --------------------------------------------------
-  # Percentiles
-  # quiero el p90 y el p10 para cada region. Se calcula de las obs
-  cpc_sacz = med_sacz[fuente == "CPC"]
-  cpc_sp = med_sp[fuente == "CPC"]
-  mod_sacz = med_sacz[fuente == "Modelo"]
-  mod_sp = med_sp[fuente == "Modelo"]
-  list10_sacz[[mod]] <- FechasPercentiles(cpc_sacz,cpc_sacz$media)[[1]]
-  list10_sp[[mod]] <- FechasPercentiles(cpc_sp,cpc_sp$media)[[1]]
-  list90_sacz[[mod]] <- FechasPercentiles(cpc_sacz,cpc_sacz$media)[[2]]
-  list90_sp[[mod]] <- FechasPercentiles(cpc_sp,cpc_sp$media)[[2]]
-
+ 
 }
 
-# Busco las semanas de coincidencia entre todos los modelos para cada region
-Reduce(intersect, list10_sacz)
+
 
 
 # Percentiles. Observaciones
@@ -354,17 +338,17 @@ dt.modelos.sp = bind_rows(lista.modelos.sp, .id = "modelo")
 
 
 
-g1<-GraphBoxplotMultiple(Data = dt.modelos.sacz, Var = "media", Grupo = "modelo",
-                     Week = "week", DataObs = med_obs_sacz, VarObs = "media",
-                     Titulo = "SACZ")
-
-g2<-GraphBoxplotMultiple(Data = dt.modelos.sp, Var = "media", Grupo = "modelo",
-                         Week = "week", DataObs = med_obs_sp, VarObs = "media",
-                         Titulo = "PATAGONIA")
-
-
-fig <- grid.arrange(g1,g2, ncol = 2,top = textGrob("SubX tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
-ggsave(filename="./SubX_processed_Rdata/boxplot.png",plot=fig,width = 17, height = 11)
+# g1<-GraphBoxplotMultiple(Data = dt.modelos.sacz, Var = "media", Grupo = "modelo",
+#                      Week = "week", DataObs = med_obs_sacz, VarObs = "media",
+#                      Titulo = "SACZ")
+# 
+# g2<-GraphBoxplotMultiple(Data = dt.modelos.sp, Var = "media", Grupo = "modelo",
+#                          Week = "week", DataObs = med_obs_sp, VarObs = "media",
+#                          Titulo = "PATAGONIA")
+# 
+# 
+# fig <- grid.arrange(g1,g2, ncol = 2,top = textGrob("SubX tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+# ggsave(filename="./SubX_processed_Rdata/boxplot.png",plot=fig,width = 17, height = 11)
 
 g1<-GraphBoxplotMultiple2(Data = dt.modelos.sacz, Var = "media", Grupo = "modelo",
                          Week = "week", DataObs = med_obs_sacz, VarObs = "media",
@@ -378,60 +362,13 @@ fig2 <- grid.arrange(g1,g2, ncol = 2,top = textGrob("SubX tasa (99-15, Oct-Mar)"
 ggsave(filename="./SubX_processed_Rdata/boxplot2.png",plot=fig2,width = 17, height = 11)
 
 
+v1 <- GraphBoxplotViolin(Data = dt.modelos.sacz, Var = "media", Grupo = "modelo",
+                         Week = "week", DataObs = med_obs_sacz, VarObs = "media",
+                         Titulo = "SACZ")
 
-
-t<-ggplot() +
-  
-  stat_boxplot(geom = 'errorbar') +
-  geom_label(label="CPC", 
-             x=1.5,
-             y=0) +
-  geom_boxplot(data = i,aes(y = media, color = modelo),notch=TRUE, outlier.shape =  NA)+
-  geom_boxplot(data = med_obs_sacz, aes(y=media, x= -0.5),color= "black", width = 0.1)  +
-  
-  
-  ylim(-3,3) +
-  
-  facet_wrap( .~ week) +
-  theme(axis.ticks.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank()) 
-t
-
-t+ annotate(geom="text", x=-0.5, y=0.2, label="CPC",
-           color="black", size = 3)
-
-
-
-
-
-ggplot(data = i, aes(y = media, color = modelo,fill=modelo)) +
-  stat_boxplot(geom = 'errorbar') +
-geom_boxplot(inherit.aes = TRUE,notch=TRUE, outlier.shape =  NA) +
-  geom_boxplot(data = med_obs_sacz, aes(y=media),color= "black") +
-             #, varwidth = TRUE
-              
-  ylim(-3,3) +
-  
-  facet_wrap( .~ week) +
-  theme(axis.ticks.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text.x = element_blank()) +
-  #theme(strip.text.x = element_text(size = 12, colour = "black"))+
-  
-  theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
-  theme(panel.background = element_rect(fill = "white",colour = "grey70",
-                                        size = 2, linetype = "solid"),
-        panel.grid.major = element_line(size = 0.5, linetype = 'solid',
-                                        colour = "grey86"),
-        panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
-                                        colour = "grey86")) 
-
-
-GraphBoxplotMultiple(Data = i, Var = "media", Grupo = "modelo",
-                     Week = "week", DataObs = med_obs_sacz, VarObs = "media")
-
-
-
-
+v2 <- GraphBoxplotViolin(Data = dt.modelos.sp, Var = "media", Grupo = "modelo",
+                          Week = "week", DataObs = med_obs_sp, VarObs = "media",
+                          Titulo = "PATAGONIA")
+                         
+fig3 <- grid.arrange(v1,v2, ncol = 2,top = textGrob("SubX tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+ggsave(filename="./SubX_processed_Rdata/violin.png",plot=fig3,width = 17, height = 11)

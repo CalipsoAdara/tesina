@@ -365,3 +365,17 @@ ggplot() +
                                         colour = "grey86")) +
   coord_cartesian()  +
   theme(plot.title = element_text(hjust = 0.5))
+
+
+
+
+arrayprueba <- array(1:48, c(3,4,4))
+
+sort(c(3,4,1))
+
+
+data = reshape2::melt(promedio[week = "Week 1"])
+dimnames(data)[[2]] <- list( "x","y","z")
+data = promedio[,.(lon,lat,week == "Week 1")]
+GraphDiscrete(Data =data, Breaks = seq(-0.5,0.5,0.15), Titulo ="pe", Label = "RdBu",Paleta= "RdBu",
+              Direccion = 1)

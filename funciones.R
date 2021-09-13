@@ -501,32 +501,53 @@ GraphBoxplotMultiple2 <- function(Data,Var,Grupo,Week, DataObs, VarObs, Titulo){
   
   # Acomodo los datos para poder hacer los graficos
   dt = Data[,list(mediana=median(get(Var),na.rm=TRUE),
-                  min = min(get(Var),na.rm=TRUE),
-                  max = max(get(Var),na.rm=TRUE),
+                  min = quantile(get(Var),0.10),
+                  max = quantile(get(Var),0.90),
                   p25 = quantile(get(Var),0.25),
                   p75 = quantile(get(Var),0.75)),by=.(get(Week),get(Grupo))]
   
   dt.obs = DataObs[,list(mediana=median(get(VarObs),na.rm=TRUE),
-                         min = min(get(VarObs),na.rm=TRUE),
-                         max = max(get(VarObs),na.rm=TRUE),
+                         min = quantile(get(Var),0.10),
+                         max = quantile(get(Var),0.90),
                          p25 = quantile(get(VarObs),0.25),
                          p75 = quantile(get(VarObs),0.75))]
   
+  # Data frame con los maximos y minimos para agregar 
+  dt.minmax <- Data[,list(min = min(get(Var),na.rm=TRUE),
+                          max = max(get(Var),na.rm=TRUE)),
+                          by=.(get(Week),get(Grupo))]
+  
+  dt.minmax.obs <- DataObs[,list(min = min(get(VarObs),na.rm=TRUE),
+                                 max = max(get(VarObs),na.rm=TRUE))]
+
+
+  
   # Agrego columna con las posiciones en el eje x. 7 modelos y 4 week
   dt = dt[,x:= rep(1:7,each=4)]
+  dt.minmax = dt.minmax[,x:= rep(1:7,each=4)]
+
   
   # Cambio nombre de la columna
   setnames(dt,"get",Week)
   setnames(dt,"get.1",Grupo)
+  setnames(dt.minmax,"get",Week)
+  setnames(dt.minmax,"get.1",Grupo)
   
   
 g <-  ggplot() +
   
-    geom_boxplot(data = promedio, aes(x=x,ymin = min, lower = p25, middle = mediana,
-                                  upper = p75, ymax = max, color = modelo),stat = "identity")+
+    geom_boxplot(data = dt, aes(x=x,ymin = min, lower = p25, middle = mediana,
+                                  upper = p75, ymax = max, color = modelo, 
+                                  fill = modelo), alpha = 0.3,stat = "identity")+
     geom_boxplot(data = dt.obs,aes(x=-0.5,ymin = min, lower = p25, middle = mediana,
                                   upper = p75, ymax = max),stat = "identity",
                                   color= "black", width = 1)+
+  
+    geom_point(data = dt.minmax, aes(x=x, y=min,color = modelo)) +
+    geom_point(data = dt.minmax, aes(x=x, y=max,color = modelo)) +
+    geom_point(data = dt.minmax.obs, aes(x=-0.5, y=min)) +
+    geom_point(data = dt.minmax.obs, aes(x=-0.5, y=max)) +
+  
     facet_wrap( .~ get(Week)) +
     
     ylim(-5,5) +
@@ -535,7 +556,8 @@ g <-  ggplot() +
            axis.title.y = element_blank(),
            axis.text.x = element_blank(),
            axis.title.x = element_blank(),
-           legend.title = element_blank()) +
+           legend.title = element_blank(),
+           text = element_text(size=15)) +
      theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
      theme(panel.background = element_rect(fill = "white",colour = "grey70",
                                            size = 2, linetype = "solid"),
@@ -548,10 +570,72 @@ g <-  ggplot() +
               color="black", size = 3) +
     ggtitle(Titulo) +
     theme(plot.title = element_text(hjust = 0.5))
-    
+  
    return(g)
 
 }
+#------------------------------------------------------------------------------------------------
+# 
+# Funcion para graficar multiples boxplots VIOLIN donde el final de las lineas son lo elegis 
+GraphBoxplotViolin <- function(Data,Var,Grupo,Week, DataObs, VarObs, Titulo){
+  # http://www.sthda.com/english/wiki/ggplot2-violin-plot-quick-start-guide-r-software-and-data-visualization
+  ## Data: Data frame con los datos. 
+  ## Var: Character. La columna del data frame con los valores numericos
+  ## Grupo: Character. La columna del data frame que indica los grupos de boxplots. Ej: "modelo"
+  ## Week: Character. La columna del data frame que indica cuantos graficos hay. Normalmente es por week
+  ## DataObs: Data frame con los datos de observaciones 
+  ## VarObs: Character. La columna del data frame obs con la variable
+  ## Titulo: Character. Titulo del grafico
+
+
+  # Repito 4 veces las observaciones y le agrego una columna de Week y modelo
+  DataObs2 <- DataObs[rep(seq_len(nrow(DataObs)), times = 4), ]
+  DataObs2$week <- rep(c("Week 1", "Week 2", "Week 3", "Week 4"),
+                     each = nrow(DataObs))
+  DataObs2$modelo <- rep("CPC",nrow(DataObs2))
+  setnames(DataObs2, "semana", "start")
+  
+  # Junto la data y dataobs en un mismo data frame 
+  Data$fuente = NULL
+  Data = rbind(Data,DataObs2)
+  
+# Funcion para generar un boxplot dentro del violin
+  data_summary <- function(x) {
+    m <- median(x,na.rm = T)
+    ymin <- as.numeric(quantile(x,0.10))
+    ymax <- as.numeric(quantile(x,0.90))
+    return(c(y=m,ymin=ymin,ymax=ymax))
+  }
+
+g <- ggplot(data = Data, aes(x=modelo,y= media, color = modelo)) +
+  # fijar boxwidth al maximo ancho (1) en todos los violines
+    geom_violin(scale = "width") +
+     stat_summary(fun.data=data_summary) + 
+    facet_wrap( .~ get(Week)) +
+    scale_color_manual(values=c("#000000",scales::hue_pal()(7)) ) +
+  
+  ylim(-5,5) +
+  
+  theme(axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        text = element_text(size=15)) +
+  theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+  theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                        size = 2, linetype = "solid"),
+        panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                        colour = "grey86"),
+        panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                        colour = "grey86")) +
+
+  ggtitle(Titulo) +
+  theme(plot.title = element_text(hjust = 0.5))
+  
+return(g)
+}
+
 #------------------------------------------------------------------------------------------------
 # Funcion que toma dos arrays de tres dimensiones y los correlaciona punto a punto en la tercera
 # dimension
@@ -701,28 +785,79 @@ DTPromEspacPesado <- function(DF,Variable,Grupo) {
   return(promedio)
 }
 #-----------------------------------------------------------------------------------------
-# Funcion que busca fechas cercanas en particular con fechas extremas
-BuscarFechaExtrema <- function(Ext, Region, Startdate){
+BuscarFechaExtrema <- function(Ext, Startdate, Columna){
   ## Ext : Data frame. Tabla con las fechas extremas separadas las regiones en columnas
-  ## Region: Character. Alguna de las regiones del datatable ext. Ej: "SACZ", "SP"
   ## Startdate: Vector con las fechas de inicializacion del modelo
+  ## Columna: Character vector. Columna o Columnas deseadas del data frame EXT
   
   # Fuerzo a data table
   ext = as.data.table(Ext)
   
-  # Nombre de las columnas para llamar
-  columna = c(paste0(Region,10), paste0(Region,90))
-  
-  # Crea data table con las fechas extremas de la region y otro con
-  # las fechas de inicio totales
-  fecha_region = data.table("region" = as.Date(c(ext[,get(columna[1])],ext[,get(columna[2])])))
+  # Crea data table con las fechas de inicio totales
   inicios = data.table("ini" = as.Date(Startdate)) 
   
+  # Crea data table con las fechas extremas de la region
+  vecfechas <- c()
+  for (n in 1:length(Columna)) {
+    fecha_region = ext[,get(Columna[n])]
+    vecfechas = append(vecfechas,fecha_region)
+  }
+  dt.fechas = data.table("region" = as.Date(vecfechas))
+  
   # Encontrar las posiciones de las fechas extremas mas cercanas, ya que 
-  # no soy exactamente iguales
-  pos_extrema = inicios[fecha_region, on = .(ini = region),roll = "nearest", which = T]
+  # no son exactamente iguales
+  pos_extrema = inicios[dt.fechas, on = .(ini = region),roll = "nearest", which = T]
   
   return(pos_extrema)
   
 }
 #-----------------------------------------------------------------------------------------
+# Funcion que calcula el coeficiente de correlacion entre dos arrays de mismas dimensiones 
+# punto a punto 
+ACC <- function(Lon,Lat,Model,Anom){
+  ## Lon: Numeric. Cantidad de puntos longitudinales
+  ## Lat: Numeric. Cantidad de puntos latitudinales
+  ## Model: Array de cuatro dimensiones (lon,lat,startdate,week)
+  ## Anom: Array de cuatro dimensiones (lon,lat,startdate,week)
+  # Para el calculo de ACC hago una vuelta mas, para recorrer todos los puntos y obtener un valor de correlacion
+  acc <- array(NA, dim = c(Lon,Lat,4))
+  for (week in 1:4) {
+    for (lon in 1:Lon) {
+      for (lat in 1:Lat) {
+        
+        # Me quedo solo con una semana a analizar y todos las fechas de pronostico
+        anom.week <- Anom[,,,week]
+        model.week <- Model[,,,week]
+        # Me quedo solo con un punto particular y todas las fechas de pronostico
+        observ <- anom.week[lon,lat,]
+        modelo <- model.week[lon,lat,]
+        
+        coef_corr <- cor(observ,modelo,use="pairwise.complete.obs",method = "pearson")
+        
+        acc[lon,lat,week] <- coef_corr
+        
+      } # End loop lat
+      
+    }  # End loop lon
+    
+  } # End loop week
+  return(acc)
+}
+#-------------------------------------------------------------------------------------------
+# Funcion que encuentra los puntos dentro de un poligono delimitado en un data frame
+# Funciona todo con df, devuelve uno
+PuntoDentroPoligono <- function(Poli,Data) {
+  ## Poli: Data frame del poligono
+  ## Data: Array con la informacion 
+  library(secr)
+  
+  # Convierto en Data frame 
+  df = reshape2::melt(Data)
+  
+  # Restringir el data frame al area del poligono (primeras 2 col son lat y lon)
+  puntospoli=pointsInPolygon(df[,1:2],Poli) 
+  df_poli = df[puntospoli,]
+  
+  return(df_poli)
+}
+#--------------------------------------------------------------------------------------
