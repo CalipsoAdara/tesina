@@ -83,6 +83,16 @@ ACC <- function(Lon,Lat,Model,Anom){
   } # End loop week
   return(acc)
 }
+#------------------------------------------------------------------------------------------
+# Funcion que pega un asterisco al lado del numero cuando se cumple una condicion logica
+EsSignificativo <- function(Cor,Test) {
+  ## Cor: Numeric. Vector con los valores a testear
+  ## Test: Logic. Vector del mismo largo que Cor que indique TRUE donde se quiera el asterisco
+  
+  Cor_as = ifelse(test, yes = paste0(Cor,"*"), no = Cor)
+  return(Cor_as)
+}
+
 #---------------------------------------------------------------------------------------
 #  functions of verification metrics 
 #---------------------------------------------------------------------------------------
@@ -150,8 +160,12 @@ SACZ <- data.frame(x_coords = c(305,305,310,321,305),
 
 poli = list(SACZ, SP)
 
+# Rho1 para calcular la muestra efectiva y la significancia de ACC
+rho1 <- readRDS(file = "./SubX_processed_Rdata/rho1.rds")
+
 # Variable a llenar. 4 semanas y 4 scores para guardar
 tabla = array(NA, dim = c(4,4,length(regiones), nmodels))
+tablan = array(NA, dim = c(length(regiones),nmodels))
 
 for (mod in 1:nmodels) {
   
@@ -168,8 +182,8 @@ for (mod in 1:nmodels) {
   for (zona in 1:length(regiones)) {
     
     # RESTRIGIR SEMANAS INDICADAS ------------------------------------
-    colname = c(paste0(regiones[zona],"10"))
-    #colname = c(paste0(regiones[zona],"10"))
+    colname = c(paste0(regiones[zona],"10"),paste0(regiones[zona],"90"))
+    #colname = c(paste0(regiones[zona],"90"))
     extrema = BuscarFechaExtrema(Ext = ext, Columna = colname, Startdate = inicios)
     
     # Remuevo posiciones repetidas y ordeno de menor a mayor
@@ -185,6 +199,8 @@ for (mod in 1:nmodels) {
     df.model = PuntoDentroPoligono(Poli = poli[[zona]], Data = ar.model.ext)
     df.anom = PuntoDentroPoligono(Poli = poli[[zona]], Data = ar.anom.ext)
     
+    df.rho1 = PuntoDentroPoligono(Poli = poli[[zona]], Data = rho1)
+    
     # Junto obs y model en un solo dataframe
     df.model$obs = df.anom$value
     setnames(df.model,"value","model")
@@ -198,53 +214,47 @@ for (mod in 1:nmodels) {
     dt.nrmse = dt[,list(nrmse.w=donrmse(obs,model)),by=.(lat,lon,week)]
     dt.acc = dt[,list(acc.w=doacc(obs,model)),by=.(lat,lon,week)]
     
+    # Uno todos los scores en un solo data table
     MergedDT = Reduce(function(x,y) merge(x = x, y = y, by = c("lat","lon","week")), 
-           list(dt.me,dt.nrmse,dt.acc,dt.rmse))
+           list(dt.me,dt.rmse,dt.nrmse,dt.acc))
     
+    # Peso los scores por el coseno de la latitud
+    MergedDT[, c("me.lat","rmse.lat","nrmse.lat","acc.lat") := lapply(.SD, function(x) x*cos(lat*pi/180)), 
+          .SDcols=c("me.w","rmse.w","nrmse.w","acc.w")]
+    MergedDT[, c("me.w","rmse.w","nrmse.w","acc.w") := NULL]
+    
+    # Lo mismo para el rho1
+    df.rho1$varlat = df.rho1$value * cos(df.rho1$lat*pi/180)
+  
     # Ahora promedio espacialmente en longitud y latitud
-    cols = c("me.w","nrmse.w","acc.w","rmse.w")
-    score = MergedDT[, sapply(.SD, function(x) list(mean = mean(x,na.rm=T)))
+    cols = c("me.lat","rmse.lat","nrmse.lat","acc.lat")
+    scores = MergedDT[, sapply(.SD, function(x) list(mean = mean(x,na.rm=T)))
                      , .SDcols = cols, by=week]
     
+    # -------- ESTADISTICO DE PRUEBA
+    # Lo mismo para el rho1
+    df.rho1.mean = mean(df.rho1$varlat,na.rm=T)
+    
+    # RHO1 sirve para todas las weeks (1,2.3 y 4). Repito el tamaño de muestra para cada semana
+    n = dim(ar.model.ext)[3]
+    acc = scores$acc.lat.mean
+    n_eff = n*((1 - df.rho1.mean)/(1 + df.rho1.mean))
+    t = (acc * sqrt(n_eff - 2)) / sqrt(1-acc^2)
+    
+    # Significancia de 0.05 y grados de libertad 
+    critc = qt(p=0.95, df = trunc(n_eff))
+    test = t > critc
+    
+    scores$acc.lat.mean <- EsSignificativo(Cor = acc, Test = test)
+    
+    # -------- ESTADISTICO DE PRUEBA
 
-    
-
-    
-    # Vuelvo a array
-    region.lon = unique(df.model$lon)
-    region.lat = unique(df.model$lat)
-    model_media_semanal = array(data = df.model$value, dim = c(length(region.lon),
-                                                             length(region.lat),
-                                                             dim(ar.model.ext)[3],
-                                                             4))
-    anom_media_semanal = array(data = df.anom$value, dim = c(length(region.lon),
-                                                               length(region.lat),
-                                                               dim(ar.anom.ext)[3],
-                                                               4))
-    
-    # Calculo las distintas métricas por cada lon/lat/targetweek
-    dif = (anom_media_semanal - model_media_semanal)
-    me = apply(dif, c(1,2,4),FUN = mean, na.rm = TRUE)
-    mae = apply(abs(dif), c(1,2,4), FUN = mean, na.rm = TRUE) 
-    rmse = sqrt(apply(dif^2,c(1,2,4), FUN = mean, na.rm = TRUE))
-    desvio = apply(dif,c(1,2,4),FUN = sd, na.rm = TRUE)
-    var = (1-sqrt(rmse))/desvio
-    
-    acc = ACC(Lon = length(region.lon),
-              Lat = length(region.lat), 
-              Model = model_media_semanal, 
-              Anom = anom_media_semanal)
- 
-    # Ahora promedio espacialmente en longitud y latitud
-    me_prom <- apply(me, 3, FUN = mean, na.rm = T)
-    rmse_prom <- apply(rmse, 3, FUN = mean, na.rm = T)
-    var_prom <- apply(var, 3, FUN = mean, na.rm = T)
-    acc_prom <- apply(acc, 3, FUN = mean, na.rm = T)
-    
-    scores <- array(c(me_prom, rmse_prom, var_prom, acc_prom), dim =c(4,4))
+    # Convierto a matrix (sin la primer columna de week)
+    scores.ar <-as.matrix(scores[,-1])
     
     # Guardo
-    tabla[,,zona,mod] <- scores
+    tabla[,,zona,mod] <- scores.ar
+    tablan[zona,mod] <- n
     
     
     
@@ -252,12 +262,15 @@ for (mod in 1:nmodels) {
   
 } # End loop modelos
 
+
 # Transformo el array en data table 
 
 dimnames(tabla) <- list(week = c("w1","w2","w3","w4"),
                        score =c("BIAS","RMSE", "NRMSE","ACC"),
                        region = regiones,
                        modelo = grupos)
+dimnames(tablan) <- list(region = regiones,
+                         modelo = grupos)
 
 # Tomar la primera semana, una region y todos los modelos
 regionw1 <- cbind.data.frame(t(tabla[1,,1,]),t(tabla[1,,2,]))
@@ -267,8 +280,8 @@ regionw4 <- cbind.data.frame(t(tabla[4,,1,]),t(tabla[4,,2,]))
 
 
 # Creo archivo csv 
-write.csv(rbind(regionw1,regionw2, regionw3, regionw4), "./SubX_processed_Rdata/ext_10.csv")
-
+write.csv(rbind(regionw1,regionw2, regionw3, regionw4), "./SubX_processed_Rdata/ext_9010.csv")
+write.csv(tablan,"./SubX_processed_Rdata/tablan_9010.csv")
 
 
 

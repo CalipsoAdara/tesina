@@ -179,8 +179,7 @@ for (lon in 1:66) {
     rho1[lon,lat] <- corlag1
   }
 }
-
-saveRDS(rho1, file = "./SubX_processed_Rdata/rho1.rds")
+#Guardado abajo
 
 # Calculo estadistico de prueba
 
@@ -241,6 +240,8 @@ dimnames(model_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas,
                                       "week" = c("Week 1","Week 2","Week 3","Week 4"))
 dimnames(anom_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
                                      "week" = c("Week 1","Week 2","Week 3","Week 4"))
+dimnames(rho1) <- list("lon" = lon,"lat" = lat)
 
+saveRDS(rho1, file = "./SubX_processed_Rdata/rho1.rds")
 saveRDS(model_media_semanal, paste0("./SubX_processed_Rdata/modelweek_GMAO.rds"))
 saveRDS(anom_media_semanal, paste0("./SubX_processed_Rdata/obsweek_GMAO.rds"))

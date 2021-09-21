@@ -861,3 +861,11 @@ PuntoDentroPoligono <- function(Poli,Data) {
   return(df_poli)
 }
 #--------------------------------------------------------------------------------------
+# Funcion que pega un asterisco al lado del numero cuando se cumple una condicion logica
+EsSignificativo <- function(Cor,Test) {
+  ## Cor: Numeric. Vector con los valores a testear
+  ## Test: Logic. Vector del mismo largo que Cor que indique TRUE donde se quiera el asterisco
+  
+  Cor_as = ifelse(test, yes = paste0(Cor,"*"), no = Cor)
+  return(Cor_as)
+}
