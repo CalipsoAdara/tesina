@@ -182,8 +182,8 @@ for (mod in 1:nmodels) {
   for (zona in 1:length(regiones)) {
     
     # RESTRIGIR SEMANAS INDICADAS ------------------------------------
-    colname = c(paste0(regiones[zona],"10"),paste0(regiones[zona],"90"))
-    #colname = c(paste0(regiones[zona],"90"))
+    #colname = c(paste0(regiones[zona],"10"),paste0(regiones[zona],"90"))
+    colname = c(paste0(regiones[zona],"10"))
     extrema = BuscarFechaExtrema(Ext = ext, Columna = colname, Startdate = inicios)
     
     # Remuevo posiciones repetidas y ordeno de menor a mayor
@@ -281,7 +281,7 @@ regionw4 <- cbind.data.frame(t(tabla[4,,1,]),t(tabla[4,,2,]))
 
 # Creo archivo csv 
 write.csv(rbind(regionw1,regionw2, regionw3, regionw4), "./SubX_processed_Rdata/ext_9010.csv")
-write.csv(tablan,"./SubX_processed_Rdata/tablan_9010.csv")
+write.csv(tablan,"./SubX_processed_Rdata/tablan_10.csv")
 
 
 
