@@ -878,15 +878,8 @@ EsSignificativo <- function(Cor,Test) {
 # M. Alvarez (2021)
 #-------------------------------------------------------------------------------
 
-library("ggplot2")
-library("data.table")
-
-rmm = read.csv("/home/mariano/Escritorio/RMM.csv")
-rmm = as.data.table(rmm)
-rmm$Date = as.Date(rmm$Date, format = "%d/%m/%y")
-
-
-GraphRMM <- function() {
+GraphRMM <- function(RMM) {
+  # RMM: data frame con una columna "DATE", otra "RMM1" y otra "RMM2"
   
   angle = seq(0,2*pi,0.01)
   circle = data.table( x = cos(angle), y = sin(angle))
@@ -907,9 +900,9 @@ GraphRMM <- function() {
     geom_segment(aes(x = -4, xend = -sqrt(2)/2, y = 4, yend = sqrt(2)/2), linetype = 'dashed')+
     geom_segment(aes(x = sqrt(2)/2, xend = 4, y = -sqrt(2)/2, yend = -4), linetype = 'dashed')+
     # Data points and lines
-    geom_point(data = RMM,aes(x = RMM1, y = RMM2, color = factor(month(Date))))+
-    geom_text(data = RMM, aes(x = RMM1, y = RMM2), label = as.character(mday(rmm$Date)),nudge_x = 0.1, nudge_y = 0.1, check_overlap = T)+
-    geom_path(data = RMM,aes(x = RMM1, y = RMM2, color = factor(month(Date))))+
+    geom_point(data = RMM,aes(x = RMM1, y = RMM2, color = factor(month(DATE))))+
+    geom_text(data = RMM, aes(x = RMM1, y = RMM2), label = as.character(mday(RMM$DATE)),nudge_x = 0.1, nudge_y = 0.1, check_overlap = T)+
+    geom_path(data = RMM,aes(x = RMM1, y = RMM2, color = factor(month(DATE))))+
     # Axis
     scale_x_continuous(limits = c(-4,4), breaks = seq(-4,4,1), expand = c(0,0))+
     xlab("RMM1")+
@@ -929,59 +922,8 @@ GraphRMM <- function() {
     geom_text(aes(x = -1.5 , y = 3.5), label = "7", size = 7)+
     geom_text(aes(x = -3.5 , y = 1.5), label = "8", size = 7)+
     # Title
-    labs(title = paste0("RMM diagrama de fase desde ",as.character(RMM$Date[1])," hasta ",as.character(RMM[.N]$Date)))+
+    labs(title = paste0("RMM diagrama de fase desde ",as.character(RMM$DATE[1])," hasta ",as.character(RMM[.N]$DATE)))+
     # Themes
     theme(legend.position="none")+
     theme(axis.text = element_text(size = 14))
-  
- 
 }
-angle = seq(0,2*pi,0.01)
-circle = data.table( x = cos(angle), y = sin(angle))
-
-rmm = rmm[45:92,]
-
-ggplot()+
-  theme_bw()+
-  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
-  # Center circle
-  geom_path(data = circle, aes(x , y))+
-  # Horizontal and vertical lines
-  geom_segment(aes(x = 1, xend = 4, y = 0, yend = 0), linetype = 'dashed')+
-  geom_segment(aes(x = -1, xend = -4, y = 0, yend = 0), linetype = 'dashed')+
-  geom_segment(aes(x = 0, xend = 0, y = 1, yend = 4), linetype = 'dashed')+
-  geom_segment(aes(x = 0, xend = 0, y = -1, yend = -4), linetype = 'dashed')+
-  # Diagonal lines
-  geom_segment(aes(x = -4, xend = -sqrt(2)/2, y = -4, yend = -sqrt(2)/2), linetype = 'dashed')+
-  geom_segment(aes(x = sqrt(2)/2, xend = 4, y = sqrt(2)/2, yend = 4), linetype = 'dashed')+
-  geom_segment(aes(x = -4, xend = -sqrt(2)/2, y = 4, yend = sqrt(2)/2), linetype = 'dashed')+
-  geom_segment(aes(x = sqrt(2)/2, xend = 4, y = -sqrt(2)/2, yend = -4), linetype = 'dashed')+
-  # Data points and lines
-  geom_point(data = rmm,aes(x = RMM1, y = RMM2, color = factor(month(Date))))+
-  geom_text(data = rmm, aes(x = RMM1, y = RMM2), label = as.character(mday(rmm$Date)),nudge_x = 0.1, nudge_y = 0.1, check_overlap = T)+
-  geom_path(data = rmm,aes(x = RMM1, y = RMM2, color = factor(month(Date))))+
-  # Axis
-  scale_x_continuous(limits = c(-4,4), breaks = seq(-4,4,1), expand = c(0,0))+
-  xlab("RMM1")+
-  scale_y_continuous(limits = c(-4,4), breaks = seq(-4,4,1), expand = c(0,0))+
-  ylab("RMM2")+
-  # Text on phases
-  geom_text(aes(x = 0 , y = -3.5), label = "Indian\n Ocean", size = 5)+
-  geom_text(aes(x = 0 , y = 3.5), label = "Western\n Pacific", size = 5)+
-  geom_text(aes(x = -3.5 , y = 0), label = "West Hem.\n and Africa", size = 5, angle = 90)+
-  geom_text(aes(x = 3.5 , y = 0), label = "Maritime\n Continent", size = 5, angle = 270)+ 
-  geom_text(aes(x = -3.5 , y = -1.5), label = "1", size = 7)+
-  geom_text(aes(x = -1.5 , y = -3.5), label = "2", size = 7)+
-  geom_text(aes(x = 1.5 , y = -3.5), label = "3", size = 7)+
-  geom_text(aes(x = 3.5 , y = -1.5), label = "4", size = 7)+
-  geom_text(aes(x = 3.5 , y = 1.5), label = "5", size = 7)+
-  geom_text(aes(x = 1.5 , y = 3.5), label = "6", size = 7)+
-  geom_text(aes(x = -1.5 , y = 3.5), label = "7", size = 7)+
-  geom_text(aes(x = -3.5 , y = 1.5), label = "8", size = 7)+
-  # Title
-  labs(title = paste0("RMM phase diagram for ",as.character(rmm$Date[1])," to ",as.character(rmm[.N]$Date)))+
-  # Themes
-  theme(legend.position="none")+
-  theme(axis.text = element_text(size = 14))
-
-ggsave(filename = "MJO_phase_diagram.png", height = 7, width = 7)  
