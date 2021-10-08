@@ -11,10 +11,10 @@ library(data.table)
 library(ggplot2)
 library(dplyr)
 library(groupdata2)
+library(csv)
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
-
 
 # Seteo el directorio
 setwd("/home/lucia.castro/SubX_processed_Rdata")
@@ -52,7 +52,7 @@ MJO <- data.frame("DATE" = fechas,
 # Considero un evento activo si cumple la cantidad de dias minimos con amplitud mayor a 1 y desplazandose 
 # hacia el este dos tercios de dichos dias 
 median(amp) #1.195 es mayor a uno
-min_dia = 10 # Cantidad de dias minima para que el evento se considere activo
+min_dia = 14 # Cantidad de dias minima para que el evento se considere activo
 dias_este_min = round(min_dia*2/3)
 amp_min = 1.19
 
@@ -65,6 +65,7 @@ resta = as.numeric(diff(ang))
 
 data = data.frame("DATE" = fechas,
                   "AMP" = amp,
+                  "FASE" = fase,
                   "ANGULO" = ang,row.names = seq(1,length(fechas)))
 setDT(data)
 
@@ -97,6 +98,7 @@ activo=activo[activo$Evento %in% d]
 fecha0 = activo[, .SD[1], by=Evento]$DATE
 fecha_ini = fecha0 - 7
 fecha_fin = activo[, .SD[.N], by=Evento]$DATE
+fase_ini= activo[, .SD[1], by=Evento]$FASE
 cant_eventos = length(fecha0)
 
 # Busco la amplitud media de cada evento
@@ -107,7 +109,8 @@ df_eventos <- data.frame("Inicio" = fecha_ini,
                          "Final" = fecha_fin,
                          "Duracion" = fecha_fin - fecha_ini,
                          "DuracionAct" = fecha_fin - fecha0,
-                         "AmpMedia" = as.numeric(amp_media$amp_med))
+                         "AmpMedia" = as.numeric(amp_media$amp_med),
+                         "Fase" = fase_ini)
 setDT(df_eventos)
 
 # Acomodo informacion en otro data frame con las comp rmm
@@ -123,20 +126,26 @@ for (d in 1:length(fecha_ini)) {
 # Convierto a data frame
 df_rmm = bind_rows(list_rmm, .id = "Evento")
 
-evento = df_rmm[Evento == 16]
+evento = df_rmm[Evento == 8]  #poner en qeu fase arranca
 
-GraphRMM(evento)
+g=GraphRMM(evento)
 dia = format(evento$DATE[1], "%d_%m_%y")
-ggsave(filename = paste0("MJO_diagrama_",dia,".png"), height = 7, width = 7) 
+ggsave(g,filename = paste0("./MJO/MJO_diagrama_",dia,".png"), height = 7, width = 7) 
+
+# TABLA CON ESTADISTICAS 
+#tabla = list()
+c <-data.table("DiaMin" = min_dia,
+           "AmpMin" = amp_min,
+           "Eventos" = cant_eventos)
 
 
-
-
-
-
-
-
-
+tabla[[4]] <- c 
+#
+df = bind_rows(tabla, .id = "Caso")
+saveRDS(df,"./MJO/tabla.rds")
+MJO <- readRDS("./MJO/tabla.rds")
+write.csv(MJO,"./MJO/tabla.csv")
+#
 
 
 
