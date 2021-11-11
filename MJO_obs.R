@@ -46,7 +46,7 @@ MJO <- data.frame("DATE" = fechas,
                   "RMM1" = rmm1,
                   "RMM2" = rmm2, row.names = seq(1,length(fechas)))
 
-#saveRDS(MJO, "./MJO.R")
+#saveRDS(MJO, "./MJO/MJO_obs.rds")
 
 # ---------------------------------------------- EVENTOS ACTIVOS -------------------------------------------------
 # Considero un evento activo si cumple la cantidad de dias minimos con amplitud mayor a 1 y desplazandose 
@@ -96,7 +96,7 @@ activo=activo[activo$Evento %in% d]
 
 # Busco las fechas de inicio "0" y los 7 dias antes para iniciar el evento; y las fechas finales
 fecha0 = activo[, .SD[1], by=Evento]$DATE
-fecha_ini = fecha0 - 7
+fecha_ini = fecha0 - min_dia
 fecha_fin = activo[, .SD[.N], by=Evento]$DATE
 fase_ini= activo[, .SD[1], by=Evento]$FASE
 cant_eventos = length(fecha0)
@@ -104,14 +104,7 @@ cant_eventos = length(fecha0)
 # Busco la amplitud media de cada evento
 amp_media = activo[,list(amp_med=mean(AMP)),by=.(Evento)]
 
-# Acomodo informacion en un data frame
-df_eventos <- data.frame("Inicio" = fecha_ini, 
-                         "Final" = fecha_fin,
-                         "Duracion" = fecha_fin - fecha_ini,
-                         "DuracionAct" = fecha_fin - fecha0,
-                         "AmpMedia" = as.numeric(amp_media$amp_med),
-                         "Fase" = fase_ini)
-setDT(df_eventos)
+
 
 # Acomodo informacion en otro data frame con las comp rmm
 list_rmm <- list()
@@ -125,8 +118,26 @@ for (d in 1:length(fecha_ini)) {
 
 # Convierto a data frame
 df_rmm = bind_rows(list_rmm, .id = "Evento")
+df_rmm$Evento <- as.numeric(df_rmm$Evento)
 
 evento = df_rmm[Evento == 8]  #poner en qeu fase arranca
+
+# Busco las fases que atraveso cada evento
+fases = aggregate( FASE~Evento,df_rmm, function(x) unique(x))
+
+# Acomodo informacion en un data frame
+df_eventos <- data.frame("Inicio" = fecha_ini, 
+                         "Final" = fecha_fin,
+                         "Duracion" = fecha_fin - fecha_ini,
+                         "DuracionAct" = fecha_fin - fecha0,
+                         "AmpMedia" = as.numeric(amp_media$amp_med),
+                         "FaseIni" = fase_ini,
+                         "Fases" = as.character(fases$FASE))
+
+setDT(df_eventos)
+#Guardo
+saveRDS(df_rmm, "./MJO/df_rmm.rds")
+saveRDS(df_eventos,"./MJO/df_eventos.rds")
 
 g=GraphRMM(evento)
 dia = format(evento$DATE[1], "%d_%m_%y")
@@ -147,23 +158,36 @@ MJO <- readRDS("./MJO/tabla.rds")
 write.csv(MJO,"./MJO/tabla.csv")
 #
 
+#######
+# TABLA DE EVENTOS VS FASES 
+# hago una tabla que dice la cantidad de dias en cada fase segun el evento
+# Ademas agrego en que fase del NIño estaba durante el evento
+
+# Cuento cantidad de dias en cada fase segun el evento 
+diasfases = df_rmm[, .(.N), by = .(Evento,FASE)]
+# Junto evento y fase en una columna
+diasfases[, EvenFase:= paste(Evento,FASE)]
+EvenFaseComp=paste(rep(1:cant_eventos,each=8),rep(1:8,cant_eventos))
+y=match(EvenFaseComp, diasfases$EvenFase)
+
+# Cargo datos de MEI (el niño)
+mei <- read.table("./MJO/meiv2.data", header = F, nrows = 43, skip = 1,
+                  col.names = c("YEAR","DJ", "JF", "FM", "MA", "AM", "MJ", "JJ", "JA", "AS", "SO", "ON", "ND"))
+
+# Acomodo en tabla y tengo NA donde no hay dias en esas fases
+tabla_diafases = t(array(data = diasfases$N[y], dim = c(8,cant_eventos), 
+      dimnames = list("Fase"=1:8, "Evento"=1:cant_eventos)))
+
+# Guardo en csv
+write.csv(tabla_diafases, file = "./tabladiafases.csv")
 
 
+# -------------------------- 
+# G R A F I C O S 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
+ 
 
 # # Elimino los dias que "solitarios", es decir, una sola fecha suelta que cumple la condicion
 # activo = activo[with(activo, c(DiaEvento[-1]!= DiaEvento[-nrow(activo)], TRUE)),]

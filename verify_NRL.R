@@ -213,6 +213,7 @@ dimnames(model_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas,
 
 dimnames(anom_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
                                      "week" = c("Week 1","Week 2","Week 3","Week 4"))
-
+metrics <- list(rmse,me,acc,var)
 saveRDS(model_media_semanal, paste0("./SubX_processed_Rdata/modelweek_NRL.rds"))
 saveRDS(anom_media_semanal, paste0("./SubX_processed_Rdata/obsweek_NRL.rds"))
+saveRDS(metrics, "./SubX_processed_Rdata/metrics_NRL.rds")

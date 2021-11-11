@@ -76,34 +76,6 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
   
   return(model_media_semanal)
 }
-# ----------------------------------------------------------------------------------------------
-# Funcion que calcula la media semanal en un punto de grilla 
-PromediarSemanas <-function(Longitud, Latitud){
-  ## Longitud: numeric del 1 al 66 indicando longitud
-  ## Latitud: numeric del 1 al 76 indicando latitud
-  
-  # tomo un punto (todos los dias) y acomodo en un array con la semana en las columnas
-  punto = ar.anom[Longitud, Latitud,]
-  dias = length(punto)
-  t2m_punto = array(punto,dim=c(7,floor(dias/7))) # Redondea para abajo, quita la ultima 
-  # semana q tiene dos dias
-  prom_semanal = colMeans(t2m_punto, na.rm = T)
-  
-  # A cada valor le asigno la fecha de inicio y final de esa semana
-  ini_sem = seq.Date(as.Date("1999-01-01"),as.Date("2016-12-31"),by=7)
-  ini_sem = ini_sem[-length(ini_sem)] # quito ultima semana
-  df.promsem = data.frame("Inicio" = ini_sem,
-                          "Final" = ini_sem+6, 
-                          "Promedio" = prom_semanal)
-  
-  # Restringo de octubre a abril
-  OA = c(1,2,3,4,10,11,12)
-  month(df.promsem$Inicio)
-  oct_abr = which(month(df.promsem$Inicio) %in% OA )
-  
-  return(df.promsem[oct_abr,])
-}  
-#---------------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------
 #  Main Program  
 #---------------------------------------------------------------------------------------
@@ -215,6 +187,7 @@ dimnames(model_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas,
                                       "week" = c("Week 1","Week 2","Week 3","Week 4"))
 dimnames(anom_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
                                      "week" = c("Week 1","Week 2","Week 3","Week 4"))
-
+metrics <- list(rmse,me,acc,var)
 saveRDS(model_media_semanal, paste0("./SubX_processed_Rdata/modelweek_ESRL.rds"))
 saveRDS(anom_media_semanal, paste0("./SubX_processed_Rdata/obsweek_ESRL.rds"))
+saveRDS(metrics, "./SubX_processed_Rdata/metrics_ESRL.rds")

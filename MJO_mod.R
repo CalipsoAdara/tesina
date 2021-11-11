@@ -1,4 +1,4 @@
-# MJO analisis con los modelos 
+# MJO analisis con los modelos. 
 
 # ---------------------------------------------------------------------------------
 # Limpiar el espacio
@@ -6,11 +6,13 @@ rm(list=ls())
 
 # cargar paquetes
 library(metR)
-library(ncdf4)
-library(udunits2)
+library("grid")
 library(RNetCDF)
 library(raster)
 library('pracma')
+library("gridExtra")
+library(data.table)
+library("ggplot2")
 
 
 # Cargo mis funciones
@@ -19,184 +21,108 @@ source("/home/lucia.castro/tesina/funciones.R")
 # Seteo el directorio
 setwd("/home/lucia.castro/SubX_processed_Rdata")
 
-groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC')                       
-models=c('GEOS_V2p1','CCSM4','FIMr1p1','GEM','NESM','GEFS')   
+groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')                       
+models=c('GEOS_V2p1','CCSM4','FIMr1p1','GEM','NESM','GEFS','SAT')   
 
 var_mjo = c("RMM1","RMM2","amplitude","phase")
 
-syrs=c(1999,1999,1999,1999,1999,1999)  # year of start (per model)
-eyrs=c(2015,2015,2015,2014,2015,2015)  # year of end (per model)
-nleads=c(45,45,32,32,45,35)              # number of lead (per model)
-nenss=c(4,3,4,4,1,11)
+
+# # DATOS DE RMM DE LOS MODELOS 
+# # Directorio donde guardar
+# outPath = '/datos/SubX/hindcast/rmm/'
+# 
+# inFname = "/datos/SubX/hindcast/rmm/Amplitude/NRL_amp.nc"
+# data = metR::ReadNetCDF(inFname, out='array')
+# data = data[[1]]
+# 
+# dimnames(data)$S <- as.character(seq.Date(as.Date("1999-01-01"),as.Date("2015-12-30"),1))
 
 
-# Directorio donde guardar
-outPath = '/datos/SubX/hindcast/rmm/'
+# Supongo que donde hubo MJO activo para las observaciones, el modelo tambien tiene evento activo
+# Me interesa solo donde se inicio el modelo con evento activo
+# Podria separar por fases al iniciar 
 
-for (mod in 1:length(groups)) {
-  for(var in 2:length(var_mjo)) {
-    
-    grupo = groups[mod]
-    model = models[mod]
-    v = var_mjo[var] 
-    
-    # Bajar datos del indice RMM al server
-    URL = paste0('https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/.'
-                 ,grupo,"/.",model,"/.hindcast/.RMM/.",v,"/dods")
-    URL = paste0("https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/."
-                 ,grupo,"/.",model,"/.hindcast/.RMM/.",v,"/data.nc")
-    
-    outDir = paste0(outPath,grupo,"-",model,"/",v)
-    dir.create(outDir,recursive=TRUE)
-    
-    
-    download.file(URL,paste0(outDir,"/",v,".txt"))
-    ncfile <- ncdf4::nc_open(URL)
-    URL = 'https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/.GMAO/.GEOS_V2p1/.hindcast/.RMM/.amplitude/dods'
-    AMP = metR::ReadNetCDF(URL, out = "array")
-    ncfile <- ncdf4::nc_open(URL)
-    var = ncvar_get(ncfile)
-    
-    f=seq.Date(as.Date("1999-01-01"),as.Date("2015-12-26"),by=1)
-    amp = metR::ReadNetCDF(URL, out='array', subset = list(L = 1:45,M = 1:4,S = as.Date("1999-01-02"))) #, subset = list(L = 1,M = 1,S = "1999-01-15"))
-    amp = metR::ReadNetCDF(ncfile, out='array',
-                           subset = list(L = 1:45,M = 1:4,S =f[1:500])) #, subset = list(L = 1,M = 1,S = "1999-01-15"))
-    hur<-var.get.nc(URL,"RMM1", start=c(0,0,0),count=c(45,4,6000))
-    
-    
-     amp[[1]]
-    library(raster)
-    library(RNetCDF)
-    r = raster(paste0(outDir,"/",v,".txt")) 
-    
-  }
-  
-  grupo = groups[mod]
-  model = models[mod]
-  v = var_mjo[var] 
+# Cargo los datos de eventos
+df_rmm <- readRDS("./MJO/df_rmm.rds")
+fechas_act <- as.character(df_rmm$DATE)
+# Cargo datos del rho1 para la significancia
+rho1 <- readRDS("./rho1.rds")
 
-    
-  # Bajar datos del indice RMM al server
-  URL = paste0("https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/."
-               ,grupo,"/.",model,"/.hindcast/.RMM/.RMM1/data.nc")
-  download.file(URL, paste0(outPath,grupo,"-",model,"/",var))
+for (g in 1:length(groups)) {
+  grupo = groups[g]
+  model = models[g]
+  # Busco que startdates coinciden con los eventos activos
+  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_ONDEFM.rds"))
+  startdate = dimnames(TargetDate)$startdate
+  posMJO = startdate %in% fechas_act
+  
+  modelweek<-readRDS(paste0("./modelweek_",grupo,".rds"))
+  obsweek<-readRDS(paste0("./obsweek_",grupo,".rds"))
+  
+  modMJO = modelweek[,,posMJO,]
+  obsMJO = obsweek[,,posMJO,]
+  
+  # Cantidad de inicios antes y despues de restringir en los eventos
+  nstartdate = length(startdate)
+  nstartdateMJO = sum(posMJO)
+  
+  # Calculo las distintas métricas por cada lon/lat/targetweek
+  dif = (obsMJO - modMJO)
+  me = apply(dif, c(1,2,4),FUN = mean, na.rm = TRUE)
+  mae = apply(abs(dif), c(1,2,4), FUN = mean, na.rm = TRUE) 
+  rmse = sqrt(apply(dif^2,c(1,2,4), FUN = mean, na.rm = TRUE))
+  desvio = apply(dif,c(1,2,4),FUN = sd, na.rm = TRUE)
+  var = (1-sqrt(rmse))/desvio
+  acc = ACC(Lon=66, Lat = 76, Model = modMJO, Anom = obsMJO) # tarda un cacho
+  
+  # Calculo estadistico de prueba
+  # RHO1 sirve para todas las weeks (1,2.3 y 4). Repito el tamaño de muestra para cada semana
+  n_eff = nstartdate*((1 - rho1)/(1 + rho1))
+  n_eff = array(n_eff, dim = c(66,76,4))
+  t = (acc * sqrt(n_eff - 2)) / sqrt(1-acc^2)
+  
+  # Significancia de 0.05 y grados de libertad 
+  critc = qt(p=0.95, df = trunc(n_eff))
+  test = t < critc
+  
+  # Renombro dimensiones 
+  dt.me = ggScoreSemanal(me)
+  dt.mae = ggScoreSemanal(mae)
+  dt.rmse = ggScoreSemanal(rmse)
+  dt.var = ggScoreSemanal(var)
+  dt.acc = ggScoreSemanal(acc)
+  
+  metrics <- list(rmse,me,acc,var)
+  saveRDS(metrics, paste0("./metricsMJO_",grupo,".rds"))
+  #---------------------------------------------------------------------------------------
+  #  Gráficos  
+  #---------------------------------------------------------------------------------------
+  g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.25),Label = "RMSE",Paleta = "YlOrRd", Direccion = "1")
+  g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "ME",Paleta = "RdBu",Direccion = "-1")
+  g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlGn",Direccion = "1")
+  g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
   
   
+  title = title <- paste("SubX ",grupo,"-",model," Inicios",nstartdateMJO,"/",nstartdate,
+                         "\nMJO active events tasa (99-15, Oct-Mar) ")
+  fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
+  ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/scores_map_MJO_",grupo,".png"),plot=fig,width = 10, height = 15)
   
-  # Bajar datos del IRI del indice RMM
-  URL_rmm1 = paste0("https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/."
-                   ,groups[mod],"/.",models[mod],"/.hindcast/.RMM/.RMM1/dods")
-  URL_fase = "https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/.NRL/.NESM/.hindcast/.RMM/.RMM1/data.nc"
-  URL_rmm1 = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.RMM1/T/%281%20Jan%201999%29%2831%20Dec%202015%29RANGEEDGES/dods"
-  URL_rmm2 = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.RMM2/T/%281%20Jan%201999%29%2831%20Dec%202015%29RANGEEDGES/dods"
-  
-  # Leer los datos 
-  amp = metR::ReadNetCDF(URL_amp, out='array')
-  ncid_max=nc_open(URL_rmm1, write=FALSE, readunlim=TRUE, verbose=FALSE,auto_GMT=TRUE, suppress_dimvals=FALSE )
-  poke=ncvar_get(ncid_max)
-  ncid_max=nc_open(URL_rmm1)
-  
-  poke = ncvar_get(ncid_max)
-  fase = metR::ReadNetCDF(URL_fase, out='array')
-  rmm1 = metR::ReadNetCDF(URL_rmm1, out='array')
-  rmm2 = metR::ReadNetCDF(URL_rmm2, out='array')
-  
-  var.get.nc(nc,"RMM1")
-  url = "https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/.NRL/.NESM/.hindcast/.RMM/.RMM1/dods"
-  nc=nc_open(url)
-  
-  attributes(ncid_max)$names
-  p=ncvar_get(ncid_max, attributes(ncid_max$var)$names)
-  
-  
-  amp = amp[[1]]
-  fase = fase[[1]]
-  rmm1 = rmm1[[1]]
-  rmm2 = rmm2[[1]]
-  
-  # Acomodar en un solo data frame 
-  MJO <- data.frame("DATE" = fechas,
-                    "AMP" = amp,
-                    "FASE" = fase,
-                    "RMM1" = rmm1,
-                    "RMM2" = rmm2, row.names = seq(1,length(fechas)))
 }
 
 
+# Hacer la resta entre los scores totales y cuando hay evento activo
 
-# suponiendo que ya tengo los datos 
-array = array(1:180,dim=c(45,4,6))
-
-# Hacer una media del ensamble 
-enmean = apply(array, c(1,3), FUN = mean)
-
-# Acomodar las observaciones ?
-# si tengo el evento 1 
-fecha = df_rmm[Evento==1]$DATE
-
-periodo = seq.Date(as.Date("1999-01-01"),as.Date("2015-12-31"),by=1)
-
-for (mod in 1:length(models)) {
-  for(var in 2:length(var_mjo)) {
-   for (fecha in 1:length(periodo)) {
-      
-      # Defino
-      grupo = groups[mod]
-      model = models[mod]
-      l = nleads[mod]
-      en = nenss[mod]
-      v = var_mjo[var]
-      f = periodo[fecha]
-      yyyymmdd = format(f,"%Y%m%d")
-      
-      # Bajar datos del indice RMM al server
-      URL = paste0('https://iridl.ldeo.columbia.edu/SOURCES/.Models/.SubX/.'
-                   ,grupo,"/.",model,"/.hindcast/.RMM/.",v,"/dods")
-      
-      # Crear carpeta
-      outDir = paste0(outPath,grupo,"-",model,"/",v)
-      dir.create(outDir,recursive=TRUE)
-      
-      # Construct output name
-      ofname=paste0(outDir,"/",yyyymmdd,'.nc')
-      
-      data = metR::ReadNetCDF(URL, out='array',subset = list(L = 1:l,M = 1:en,S = f))
-      data = data[[1]]
-    
-      
-      # Si no esta vacio el array
-      if(sum(is.na(data[[1]]))==prod(size(data[[1]]))) {
-        
-      } else {
-        # Write Data
-        fprintf('%s%s\n','Writing File: ',ofname)
-        #1. Define dimensions
-        londim <- ncdim_def("L","none",1:l, longname = "Lead") 
-        latdim <- ncdim_def("M","none",1:en, longname = "Ensamble Members")
-        # 2. Define variables
-        var_def <- ncvar_def(v,"none",dim = list(londim,latdim),missval = 1e+15,
-                             longname=v,prec="float")
-        # Create netCDF file and put arrays
-        ncout <- nc_create(ofname,list(var_def),force_v4=TRUE)
-        # Put variables
-        ncvar_put(ncout,var_def,data)
-        # Add global attributess
-        ncatt_put(ncout,0,"CreationDate",as.character(Sys.Date()))
-        ncatt_put(ncout,0,"CreatedBy","Lucia M. Castro")
-        
-        # close the file, writing data to disk
-        nc_close(ncout)
-          
-        }
-        
-    } 
-    
-    
-  }
-    
-}
+for (g in 1:length(groups)) {
+  grupo = groups[g]
+  model = models[g]
   
+  # Cargo los scores
+  metricMOD <- readRDS(paste0("./metrics_",grupo,".rds"))
+  metricMJO <- readRDS(paste0("./metricsMJO_",grupo,".rds"))
+  
+  # Hago la resta de cada metrica
+  rmse <- metricMOD[[1]] - metricMJO[[1]]
 
-
-dat = metR::ReadNetCDF('/datos/SubX/hindcast/rmm/GMAO-GEOS_V2p1/RMM1/19990101.nc', out='array')
-dat[[1]]
+  }
+  

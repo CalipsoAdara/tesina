@@ -257,7 +257,23 @@ ggDataFrame <- function(Array){
   return(df)
   
 }
-
+#--------------------------------------------------------------------------------------------------
+# Funcion para transformar un array de datos acomodados semanalmente en data frame para graficar
+ggScoreSemanal <- function(Array) {
+  # Renombro dimensiones 
+  lon = seq(265,330,1)
+  lat = rev(seq(-60,15,1))
+  dimnames(Array) <- list(x = lon, 
+                          y = lat, 
+                          week = c("Week 1", "Week 2","Week 3", "Week 4"))
+  
+  
+  # Armo data.frames para graficar
+  dt <- reshape2::melt(Array, value.name = "z")
+  
+  return(dt)
+  
+}
 #--------------------------------------------------------------------------------------------------
 # Funcion para graficar teniendo en cuenta la significancia de correlacion
 # se cubre con puntos la parte no significativa
@@ -718,15 +734,16 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
 }
 # ----------------------------------------------------------------------------------------------
 # Funcion que calcula la media semanal en un punto de grilla 
-PromediarSemanas <-function(Longitud, Latitud){
+PromediarSemanas <-function(Longitud, Latitud, Anom){
   ## Longitud: numeric del 1 al 66 indicando longitud
   ## Latitud: numeric del 1 al 76 indicando latitud
+  ## Array con los datos 
   
   # tomo un punto (todos los dias) y acomodo en un array con la semana en las columnas
-  punto = ar.anom[Longitud, Latitud,]
+  punto = Anom[Longitud, Latitud,]
   dias = length(punto)
   t2m_punto = array(punto,dim=c(7,floor(dias/7))) # Redondea para abajo, quita la ultima 
-  # semana q tiene dos dias
+                                                  # semana q tiene dos dias
   prom_semanal = colMeans(t2m_punto, na.rm = T)
   
   # A cada valor le asigno la fecha de inicio y final de esa semana
@@ -738,7 +755,6 @@ PromediarSemanas <-function(Longitud, Latitud){
   
   # Restringo de octubre a abril
   OA = c(1,2,3,4,10,11,12)
-  month(df.promsem$Inicio)
   oct_abr = which(month(df.promsem$Inicio) %in% OA )
   
   return(df.promsem[oct_abr,])
