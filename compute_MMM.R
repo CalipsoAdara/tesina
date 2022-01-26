@@ -123,7 +123,7 @@ oct1_7 = c("10-01","10-02","10-03","10-04","10-05","10-06","10-07")
 sabadoMME = sabado[!substr(sabado,6,10) %in% oct1_7]  # Asigna TRUE donde se cumple la condicion y "!" lo revierte
 
 # Array de targetday del multimodelo
-targetdateMME = array(NA,dim = c(28,length(sabadoMME)), dimnames = list(1:28,as.character(sabadoMME)))
+targetdateMME = array(NA,dim = c(28,length(sabadoMME)), dimnames = list("lead"=1:28,"startdate" = as.character(sabadoMME)))
 # Recorre todas las fechas de pronosticos
 for (sab in 1:length(sabadoMME)) {
   targetdateMME[,sab] <- as.character(sabadoMME[sab] +(0:27))
@@ -202,7 +202,7 @@ dimnames(MME_pro) <- list("lon" = seq(265,330,1), "lat" = rev(seq(-60,15,1)),
 
 # Todo listo para empezar la verificación octubre-marzo. Guardo para limpiar y comenzar la verificación.
 saveRDS(MME_pro,paste0("./MME_OM.rds"))
-saveRDS(targetdateMME,paste0("./targetdate_MME_OM.rds"))
+saveRDS(targetdateMME,paste0("./targetdate_MME_ONDEFM.rds"))
 
 #-------------------------------------------------------------------------------------------------
 # Predictibilidad
@@ -281,6 +281,8 @@ for (model in 1:nmodels) {
   
 } # End loop models
   
+# Guardo
+saveRDS(cor_mod, "./predict.rds")
 
 # G R A F I C O S ------------------------------------
 
@@ -295,7 +297,7 @@ for (m in 1:nmodels) {
   # Armo data.frames para graficar
   df <- reshape2::melt(data, value.name = "z")
   
-  titl = paste0("Predictibilidad ", models[m],"tasa (99-15, Oct-Mar)")
+  titl = paste0("Predictibilidad ", models[m], " tasa (99-15, Oct-Mar)")
   g <- GraphDiscreteMultiple(df, Breaks = seq(0,1,0.2) , Label = "ACC", Paleta = "YlOrRd",Direccion = "1")
   fig <- grid.arrange(g, ncol = 1,top = textGrob(titl,gp=gpar(fontsize=13,font=3)))
   fn <- paste0("/home/lucia.castro/SubX_processed_Rdata/predic_",models[m],".png")

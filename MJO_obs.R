@@ -12,6 +12,7 @@ library(ggplot2)
 library(dplyr)
 library(groupdata2)
 library(csv)
+library(fancycut)
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
@@ -52,7 +53,7 @@ MJO <- data.frame("DATE" = fechas,
 # Considero un evento activo si cumple la cantidad de dias minimos con amplitud mayor a 1 y desplazandose 
 # hacia el este dos tercios de dichos dias 
 median(amp) #1.195 es mayor a uno
-min_dia = 14 # Cantidad de dias minima para que el evento se considere activo
+min_dia = 7 # Cantidad de dias minima para que el evento se considere activo
 dias_este_min = round(min_dia*2/3)
 amp_min = 1.19
 
@@ -120,7 +121,6 @@ for (d in 1:length(fecha_ini)) {
 df_rmm = bind_rows(list_rmm, .id = "Evento")
 df_rmm$Evento <- as.numeric(df_rmm$Evento)
 
-evento = df_rmm[Evento == 8]  #poner en qeu fase arranca
 
 # Busco las fases que atraveso cada evento
 fases = aggregate( FASE~Evento,df_rmm, function(x) unique(x))
@@ -129,7 +129,6 @@ fases = aggregate( FASE~Evento,df_rmm, function(x) unique(x))
 df_eventos <- data.frame("Inicio" = fecha_ini, 
                          "Final" = fecha_fin,
                          "Duracion" = fecha_fin - fecha_ini,
-                         "DuracionAct" = fecha_fin - fecha0,
                          "AmpMedia" = as.numeric(amp_media$amp_med),
                          "FaseIni" = fase_ini,
                          "Fases" = as.character(fases$FASE))
@@ -137,25 +136,34 @@ df_eventos <- data.frame("Inicio" = fecha_ini,
 setDT(df_eventos)
 #Guardo
 saveRDS(df_rmm, "./MJO/df_rmm.rds")
-saveRDS(df_eventos,"./MJO/df_eventos.rds")
 
-g=GraphRMM(evento)
-dia = format(evento$DATE[1], "%d_%m_%y")
-ggsave(g,filename = paste0("./MJO/MJO_diagrama_",dia,".png"), height = 7, width = 7) 
+
+# Graficos de cada evento
+for (e in 1:cant_eventos) {
+  evento = df_rmm[Evento == e]
+  g = GraphRMM(evento)
+  dia = format(evento$DATE[1], "%d_%m_%y")
+  ggsave(g,filename = paste0("./MJO/E",e,"_diagrama_",dia,".png"), height = 7, width = 7) 
+}
 
 # TABLA CON ESTADISTICAS 
-#tabla = list()
-c <-data.table("DiaMin" = min_dia,
-           "AmpMin" = amp_min,
-           "Eventos" = cant_eventos)
+# ver cuantas inicializaciones en cada fase
+# Convierto el 8 a -8 para que funque el CUT 
+df_eventos[FaseIni == 8]$FaseIni <- c(-8)
+# Agrupo segun dos fases cada uno
+df_eventos[,Bin := fancycut(FaseIni, Fase81 = '[-8,1]',
+                            Fase23 = '[2,3]',
+                            Fase45 = '[4,5]',
+                            Fase67 = '[6,7]')]
+diasvsfases=df_eventos[, .(.N), by = .(Bin)]
 
+# Esta informacion la guardo en df_rmm tambien
+df_rmm[,Bin:=(rep(df_eventos$Bin, (df_eventos$Duracion+1)))]
+# Repite el valor de Bin por la duracion del evento 
+# (+1 para que cuente el dia inicial)
+saveRDS(df_eventos,"./MJO/df_eventos.rds")
+saveRDS(df_rmm,"./MJO/df_rmm.rds")
 
-tabla[[4]] <- c 
-#
-df = bind_rows(tabla, .id = "Caso")
-saveRDS(df,"./MJO/tabla.rds")
-MJO <- readRDS("./MJO/tabla.rds")
-write.csv(MJO,"./MJO/tabla.csv")
 #
 
 #######
@@ -170,16 +178,70 @@ diasfases[, EvenFase:= paste(Evento,FASE)]
 EvenFaseComp=paste(rep(1:cant_eventos,each=8),rep(1:8,cant_eventos))
 y=match(EvenFaseComp, diasfases$EvenFase)
 
-# Cargo datos de MEI (el niño)
+
+# Cargo datos de ONI (NIÑO)
+t<-download.file("https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php", destfile = "./MJO/oni")
+t = download.oni.cpc.ncep.noaa(GUI = FALSE)
+#Cargo datos de MEI (el niño)
 mei <- read.table("./MJO/meiv2.data", header = F, nrows = 43, skip = 1,
-                  col.names = c("YEAR","DJ", "JF", "FM", "MA", "AM", "MJ", "JJ", "JA", "AS", "SO", "ON", "ND"))
+                  col.names = c("YEAR","DecJan", "JanFeb", "FebMar", "MarApr", "AprMay", 
+                                "MayJun", "JunJul", "JulAug", "AugSep", "SepOct", "OctNov", "NovDec"))
+
+# Obtengo el año y mes de cada evento
+aniomes <- GetMesEvento(DF = df_rmm, NEvento = cant_eventos)
+mesmei = colnames(mei)                      # mes del indice mei
+mesevent = substr(aniomes,5,nchar(aniomes)) # mes del evento
+
+list_nino <- array()
+for (i in 1:cant_eventos) {
+  
+  if (nchar(mesevent[i])==6) {  # Si el evento ocurre en dos meses, usa el indice como viene
+    # La columna es aquella igual a los meses del evento y
+    # la fila es aquella igual al año del evento
+    col = which(mesmei %in% mesevent[i])            
+    fila = which(mei$YEAR == substr(aniomes[i],1,4)) 
+    index = mei[fila,col]}
+  
+  if (nchar(mesevent[i])==9) {  # SI el evento ocurre en tres meses se usa el indice 
+                                # de los dos meses mas prominentes (mayor canti de dias)
+    evento = df_rmm[Evento == i]
+    # Extraigo mes (en letras) y año, cuenta la cant de dias en cada mes
+    anio_mes = rle(format(evento$DATE, "%b"))
+    # quito el mes con menos dias, osea, me quedo con los dos meses prominentes
+    mesp = paste(anio_mes$values[-which.min((anio_mes$lengths))], collapse = "")
+    
+    col = which(mesmei %in% mesp)            
+    fila = which(mei$YEAR == substr(aniomes[i],1,4)) 
+    index = mei[fila,col]}
+  
+  if (nchar(mesevent[i])==12) { # Si el evento ocurre en cuatro meses tomo los dos indices
+                                # bimestrales y los promedio
+    col1 = which(mesmei %in% substr(mesevent[i],1,6))
+    col2 = which(mesmei %in% substr(mesevent[i],4,9))
+    col3 = which(mesmei %in% substr(mesevent[i],7,12))
+    fila = which(mei$YEAR == substr(aniomes[i],1,4)) 
+    index = (mei[fila,col1] + mei[fila,col2] + mei[fila,col3]) /3}
+  
+  if (nchar(mesevent[i])==3) { # Si el evento ocurre en un mes tomo los dos indices en los
+                               # que esta el mes y los promedio
+    
+    col = grepl( substr(mesevent[i],1,3), mesmei, fixed = TRUE)
+    fila = which(mei$YEAR == substr(aniomes[i],1,4))
+    index = mean(as.numeric(mei[fila,col])) }
+  
+  list_nino[[i]] = NinooNina(Ind = index, Criterio = 0.5)
+  
+}
+
 
 # Acomodo en tabla y tengo NA donde no hay dias en esas fases
 tabla_diafases = t(array(data = diasfases$N[y], dim = c(8,cant_eventos), 
       dimnames = list("Fase"=1:8, "Evento"=1:cant_eventos)))
+# Agrego columna de fase NIño
+df_diafases <- cbind(as.data.frame(tabla_diafases),list_nino) # converti a dataframe para tener letras y num en el mismo objeto
 
 # Guardo en csv
-write.csv(tabla_diafases, file = "./tabladiafases.csv")
+write.csv(df_diafases, file = "./tabladiafases.csv")
 
 
 # -------------------------- 

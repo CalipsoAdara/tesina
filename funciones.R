@@ -153,13 +153,13 @@ GraphDiscreteMultiple <- function(Data, Breaks, Label, Paleta, Direccion){
   max <- max(Data$z, na.rm = T)
   Data$z <- oob_squish(Data$z,range = c(min(Breaks),max(Breaks)))
   
-  # Aqui extiendo un poco la escala para que cubra todo 
+  # Aqui extiendo un poco la escala para que cubra todo
   fillbreaks = Breaks
   fillbreaks[length(Breaks)] <- max(Breaks)*1.1
   fillbreaks[1] <- min(Breaks)*1.1
   
   # Grafico en si 
-  ggplot() +
+  ggplot() +                                          # fILLBREAKS
     geom_contour_fill(data=Data,aes(x, y, z = z),breaks = fillbreaks) +
     scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
     scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
@@ -942,4 +942,124 @@ GraphRMM <- function(RMM) {
     # Themes
     theme(legend.position="none")+
     theme(axis.text = element_text(size = 14))
+}
+#---------------------------------------------------------------------------------------------
+# Funcion que toma las fechas del data frame de eventos y devuelve un vector en el formato
+# "2000FebMar"
+GetMesEvento <- function(DF,NEvento) {
+  mesanioevent <- array()
+  for (i in 1:NEvento) {
+    # Selecciono un evento
+    evento = DF[Evento == i]
+    # Extraigo mes (en letras) y año 
+    anio_mes = unique(format(evento$DATE, "%Y-%b"))
+    # Tomo el año de la ultima fecha del evento 
+    # ya que a DF se le asigna el nuevo año
+    ult_anio = last(substr(anio_mes,1,4))
+    meses = paste(substr(anio_mes,6,8), collapse = "")
+    anio_mes_uni = paste0(ult_anio, meses )
+    
+    # Guardo
+    mesanioevent[[i]] <- anio_mes_uni
+  }
+  return(mesanioevent)
+}
+#------------------------------------------------------------------------------------
+# Funcion que dado un numero y un criterio te devuelve si el indice indica evento niño o nina
+# Para el indice MEI
+NinooNina <- function(Ind, Criterio) {
+  ## Ind: El valor del indice 
+  ## Criterio: Numero. Valor al que tiene que ser mayor (menor)para ser evento Niño
+  if (Ind<Criterio & Ind>-Criterio) { return("Neutro")}
+  else if (Ind>=Criterio) { return("Niño")}
+  else if (Ind<=Criterio) { return("Niña")}
+}
+
+#-----------------------------------------------------------------------------------------
+# Funcion que toma dos graficos GGPLOT y agrega una leyenda en el centro abajo
+# Basicamente genera un grafico ejemplo y toma la leyenda. Los colores estan predeterminados
+# Como el primer color y el ultimo de la paleta
+GraphLeyendaCondicional <- function(Breaks, Paleta, Labels, G1, G2, Title) {
+  # http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
+  # Breaks: la escala del grafico o graficos originales (solo importa la cantidad de cortes)
+  # Paleta: la paleta de colores del grafico original
+  # Labels: character vector con las etiquetas de la legenda
+  # G1. G2: Los graficos a juntar
+  
+  # Tomar el primer y ultimo color de la paleta. Ej para RdBu
+  hex = brewer.pal(n=length(Breaks), Paleta)
+  Rojo = hex[1]
+  Azul = last(hex)
+  colors <- c(Rojo , Azul )
+  
+  # Ploteo grafico con los colores
+  sz<-ggplot(iris, aes(x = Sepal.Length, color = colors)) +
+    geom_point(aes(y = Sepal.Width, color =  Rojo), size = 6, shape = 18) +
+    geom_point(aes(y = Petal.Length, color =  Azul), size = 6,shape = 18) +
+    
+    labs(x = "Year",
+         y = "(%)",
+         color = "") +
+    
+    scale_color_manual(values = colors, labels = Labels) +
+    theme_bw() +
+    theme(legend.position = "bottom")
+  guides(color = guide_legend(
+    override.aes=list(shape = 18)))
+  
+  # Le borro la leyenda a los graficos originales
+  G1B <- G1 + theme(legend.position = "none") 
+  G2B <- G2 + theme(legend.position = "none") 
+  
+  # Junto
+  legend <- get_legend(sz)
+  P <- grid.arrange(G1B, G2B, legend, ncol=1, heights = c(2.5,2.5, 0.2),
+                    top = textGrob(Title,gp=gpar(fontsize=13,font=3)))
+  return(P)
+  
+}
+#---------------------------------------------------------------------------------------------
+# Similar a lo anterior pero solo devuelve la leyenda para poder hacer el arreglo de funciones 
+# como uno desee (gridarrange)
+LeyendaCondicional <- function(Breaks, Paleta, Labels) {
+  # http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
+  # Breaks: la escala del grafico o graficos originales (solo importa la cantidad de cortes)
+  # Paleta: la paleta de colores del grafico original
+  # Labels: character vector con las etiquetas de la legenda
+  # G1. G2: Los graficos a juntar
+  
+  # Tomar el primer y ultimo color de la paleta. Ej para RdBu
+  hex = brewer.pal(n=length(Breaks), Paleta)
+  Rojo = hex[1]
+  Azul = last(hex)
+  colors <- c(Rojo , Azul )
+  
+  # Ploteo grafico con los colores
+  sz<-ggplot(iris, aes(x = Sepal.Length, color = colors)) +
+    geom_point(aes(y = Sepal.Width, color =  Rojo), size = 6, shape = 18) +
+    geom_point(aes(y = Petal.Length, color =  Azul), size = 6,shape = 18) +
+    
+    labs(x = "Year",
+         y = "(%)",
+         color = "") +
+    
+    scale_color_manual(values = colors, labels = Labels) +
+    theme_bw() +
+    theme(legend.position = "bottom")
+  guides(color = guide_legend(
+    override.aes=list(shape = 18)))
+  
+  # Junto
+  return(get_legend(sz))
+  
+}
+# ---------------------------------------------------------------------------------------------
+# Funcion que dados dos arrays de igual dimension calcula el rmse y el acc. Devuelve lista
+Metrics <- function(D1,D2){
+  # Calculo las distintas métricas por cada lon/lat/targetweek
+  dif = (D1 - D2)
+  rmse = sqrt(apply(dif^2,c(1,2,4), FUN = mean, na.rm = TRUE))
+  acc = ACC(Lon=66, Lat = 76, Model = D1, Anom = D2) # tarda un cacho
+  
+  return(list(rmse,acc))
 }
