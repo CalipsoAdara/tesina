@@ -104,7 +104,7 @@ for (g in 1:length(groups)) {
   
   for (b in Bins) { # por cada Bin
     # Cargo los datos
-    metricACT <- readRDS(paste0("./ScoresBins/",grupo,b))
+    metricACT <- readRDS(paste0("./MJO/ScoresBins/",grupo,b))
     # Resto
     resta_bin <- Map('-', metricACT, metricINA) #Resto ambas listas 
     # Graficos
