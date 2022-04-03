@@ -1074,3 +1074,77 @@ Metrics <- function(D1,D2){
   
   return(list("rmse"=rmse,"acc"=acc))
 }
+# ---------------------------------------------------------------------------------------------
+# Funcion que obtiene la leyenda de una ggplot. Robado de 
+# http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+# ---------------------------------------------------------------------------------------------
+# Funcion para graficar las metricas de MJO en mjo_mod y mjo_fases con una leyenda condicional
+GraphMJOCond <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
+  ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
+  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
+  # son los valores
+  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
+  ## Titulo: character vector con el titulo del grafico
+  ## Label: character vector con el titulo para la barra de colores. Ej "Kelvin"
+  ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
+  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
+  ## LabelBreaks: un vector con las
+  
+  # Cargo paquetes
+  library("ggplot2")
+  library("maps")
+  library("RColorBrewer")
+  
+  # Seteo los parametros de mapa y gradiente 
+  mapa<-map_data("world2") 
+  min <- min(Data$value, na.rm = T)
+  max <- max(Data$value, na.rm = T)
+  Data$z=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
+  
+  # Aqui extiendo un poco la escala para que cubra todo
+  fillbreaks = Breaks
+  fillbreaks[length(Breaks)] <- max(Breaks)*1.1
+  fillbreaks[1] <- min(Breaks)*1.1
+  
+  # Grafico en si 
+  g<-  ggplot() +                                          # o Breaks   
+    geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
+    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
+                         na.value = "transparent",
+                         breaks = Breaks,
+                         limits = c(min(Breaks), max(Breaks)),
+                         guide = guide_colorstrip(),
+                         oob  = scales::squish) +
+    ggtitle(Titulo)  +
+    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+    theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    facet_grid( metric~ week)  +   # esto es nuevo row ~ col
+    
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    coord_cartesian()  +
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(legend.position  = "none")
+  
+  
+  # Ahora agrego leyenda
+  legend <- LeyendaCondicional(Breaks, Paleta, Labels = c("MJO APORTA", "MJO NO APORTA"))
+  grid.arrange(g, legend,
+               ncol=1, nrow = 2, 
+               widths = c(3), heights = c( 2.5,0.2))
+  
+}
