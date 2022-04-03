@@ -13,6 +13,7 @@ library('pracma')
 library("gridExtra")
 library(data.table)
 library("ggplot2")
+library(dplyr)
 
 
 # Cargo mis funciones
@@ -60,8 +61,8 @@ for (g in 1:length(groups)) {
   modelweek<-readRDS(paste0("./modelweek_",grupo,".rds"))
   obsweek<-readRDS(paste0("./obsweek_",grupo,".rds"))
   
-  modMJO = modelweek[,,!posMJO,]
-  obsMJO = obsweek[,,!posMJO,]
+  modMJO = modelweek[,,posMJO,] #para inactive !posMJO
+  obsMJO = obsweek[,,posMJO,]
   
   # Cantidad de inicios antes y despues de restringir en los eventos
   nstartdate = length(startdate)
@@ -94,7 +95,7 @@ for (g in 1:length(groups)) {
   dt.acc = ggScoreSemanal(acc)
   
   metrics <- list(rmse,me,acc,var)
-  saveRDS(metrics, paste0("./metricsMJO_inact_",grupo,".rds"))
+  saveRDS(metrics, paste0("./MJO/metricsMJO_act_",grupo,".rds"))
   #---------------------------------------------------------------------------------------
   #  Gráficos  
   #---------------------------------------------------------------------------------------
@@ -106,9 +107,10 @@ for (g in 1:length(groups)) {
   
   
   title = title <- paste("SubX ",grupo,"-",model," Inicios",nstartdateMJO,"/",nstartdate,
-                         "\nMJO inactive events tasa (99-15, Oct-Mar) ")
+                         "\nMJO active events tasa (99-15, Oct-Mar) ")
   fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
-  ggsave(filename=paste0("/home/lucia.castro/SubX_processed_Rdata/scores_map_MJO_inac_",grupo,".png"),plot=fig,width = 10, height = 15)
+  ggsave(filename=paste0("./MJO/ScoresMaps/scores_map_MJO_act_",grupo,".png"),
+         plot=fig,width = 10, height = 15)
   
 }
 
@@ -181,7 +183,7 @@ for (g in 1:length(groups)) {
   # Cargo datos de modelo y observaciones
   modelweek<-readRDS(paste0("./modelweek_",grupo,".rds"))
   obsweek<-readRDS(paste0("./obsweek_",grupo,".rds"))
-  metricINA <- readRDS(paste0("./metricsMJO_inact_",grupo,".rds"))[c(1,3)] #Leo rmse y acc solo
+  metricINA <- readRDS(paste0("./MJO/metricsMJO_inact_",grupo,".rds"))[c(1,3)] #Leo rmse y acc solo
   
   for (b in Bins) { # por cada Bin
     # Busco que startdates coinciden con los eventos activos
@@ -198,6 +200,9 @@ for (g in 1:length(groups)) {
     saveRDS(sco_bin,paste0("./MJO/ScoresBins/",grupo,b))
     resta_bin <- Map('-', sco_bin, metricINA) #Resto ambas listas 
     
+    # Guardar la diferencia
+    saveRDS(resta_bin,paste0("./MJO/ScoresBins/diff",grupo,b))
+    
     # Graficos
     g1 <- GraphDiscreteMultiple(Data = ggScoreSemanal(resta_bin[[1]]), Breaks = seq(-0.2,0.2,0.05),Label = "RMSE",Paleta = "RdBu", Direccion = "1") 
     g2 <- GraphDiscreteMultiple(Data = ggScoreSemanal(resta_bin[[2]]), Breaks = seq(-0.2,0.2,0.05), Label = "ACC",Paleta = "RdBu",Direccion = "-1")
@@ -210,6 +215,87 @@ for (g in 1:length(groups)) {
  
   }# End Bin
 }# End model
+
+# PRUEBA DE FACET GRID 
+
+# leer datos pasar la info a un dataframe
+
+df_bin <- reshape2::melt(readRDS("./MJO/ScoresBins/diffGMAOFase81"))
+bin =readRDS("./MJO/ScoresBins/diffGMAOFase81")
+df1 = reshape2::melt(bin[[1]])
+df2 = reshape2::melt(bin[[2]])
+df = rbind(df1,df2)
+df_bin[,c(5,6,7)] <- NULL # quito columnas raras que aparecen
+df_bin <- rename(df_bin,"metric"="L1")
+
+
+ggplot(data = df_bin, aes(lon, lat)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "steelblue") + 
+    
+  facet_wrap(~ week + metric)  +
+  theme(
+    strip.text.x = element_text(margin = margin(2, 0, 2, 0))
+  )
+GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
+  
+  ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
+  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
+  # son los valores
+  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
+  ## Titulo: character vector con el titulo del grafico
+  ## Label: character vector con el titulo para la barra de colores. Ej "Kelvin"
+  ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
+  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
+  ## LabelBreaks: un vector con las
+  
+  # Cargo paquetes
+  library("ggplot2")
+  library("maps")
+  library("RColorBrewer")
+  
+  # Seteo los parametros de mapa y gradiente 
+  mapa<-map_data("world2") 
+  min <- min(Data$value, na.rm = T)
+  max <- max(Data$value, na.rm = T)
+  Data$z=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
+  
+  # Aqui extiendo un poco la escala para que cubra todo
+  fillbreaks = Breaks
+  fillbreaks[length(Breaks)] <- max(Breaks)*1.1
+  fillbreaks[1] <- min(Breaks)*1.1
+  
+  # Grafico en si 
+  ggplot() +                                          # o Breaks   
+    geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
+    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
+                         na.value = "transparent",
+                         breaks = Breaks,
+                         limits = c(min(Breaks), max(Breaks)),
+                         guide = guide_colorstrip(),
+                         oob  = scales::squish) +
+    ggtitle(Titulo)  +
+    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+    theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    facet_grid(~ metric + week)  +
+    
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    coord_cartesian()  +
+    theme(plot.title = element_text(hjust = 0.5))
+    
+  
+  
+
+
 
 # Hago el grafico
 # matrix 

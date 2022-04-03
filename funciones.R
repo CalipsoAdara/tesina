@@ -1065,6 +1065,12 @@ Metrics <- function(D1,D2){
   dif = (D1 - D2)
   rmse = sqrt(apply(dif^2,c(1,2,4), FUN = mean, na.rm = TRUE))
   acc = ACC(Lon=66, Lat = 76, Model = D1, Anom = D2) # tarda un cacho
+  lon = seq(265,330,1)
+  lat = rev(seq(-60,15,1))
+  dimnames(acc) <- list(lon = lon, 
+                          lat = lat, 
+                          week = c("Week 1", "Week 2","Week 3", "Week 4"))
   
-  return(list(rmse,acc))
+  
+  return(list("rmse"=rmse,"acc"=acc))
 }
