@@ -1050,9 +1050,12 @@ LeyendaCondicional <- function(Breaks, Paleta, Labels) {
     
     scale_color_manual(values = colors, labels = Labels) +
     theme_bw() +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    theme(legend.text=element_text(size=15))
+  
   guides(color = guide_legend(
-    override.aes=list(shape = 18)))
+    override.aes=list(shape = 18)))+
+   theme(legend.text=element_text(size=15))
   
   # Junto
   return(get_legend(sz))
@@ -1085,13 +1088,12 @@ get_legend<-function(myggplot){
 }
 # ---------------------------------------------------------------------------------------------
 # Funcion para graficar las metricas de MJO en mjo_mod y mjo_fases con una leyenda condicional
-GraphMJOCond <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
+GraphMJOCond <- function(Data, Breaks, Titulo, Paleta, Direccion){
   ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
   # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
   # son los valores
   ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
   ## Titulo: character vector con el titulo del grafico
-  ## Label: character vector con el titulo para la barra de colores. Ej "Kelvin"
   ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
   ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
   ## LabelBreaks: un vector con las
@@ -1117,7 +1119,7 @@ GraphMJOCond <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
     geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
     scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
     scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
-    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
+    scale_fill_distiller(palette=Paleta,direction= Direccion,
                          na.value = "transparent",
                          breaks = Breaks,
                          limits = c(min(Breaks), max(Breaks)),
@@ -1127,7 +1129,7 @@ GraphMJOCond <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
     geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
     theme(axis.text=element_text(size=12))+
     theme(strip.text.x = element_text(size = 12, colour = "black"))+
-    facet_grid( metric~ week)  +   # esto es nuevo row ~ col
+    facet_grid( mod~ bin)  +   # esto es nuevo row ~ col
     
     theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
     theme(panel.background = element_rect(fill = "white",colour = "grey70",

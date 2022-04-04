@@ -216,147 +216,52 @@ for (g in 1:length(groups)) {
   }# End Bin
 }# End model
 
+#---------------------------------------------------------------------------------------------------
+
 # PRUEBA DE FACET GRID 
 
 # leer datos pasar la info a un dataframe
 
-df_bin <- reshape2::melt(readRDS("./MJO/ScoresBins/diffGMAOFase81"))
-df_bin <- rename(df_bin,"metric"="L1")
 
+# DATA FRAME a unir todo: modelos, bins, week, metric
+df <- data.frame()
 
-GraphMJOCond <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
-  ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
-  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
-  # son los valores
-  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
-  ## Titulo: character vector con el titulo del grafico
-  ## Label: character vector con el titulo para la barra de colores. Ej "Kelvin"
-  ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
-  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
-  ## LabelBreaks: un vector con las
-  
-  # Cargo paquetes
-  library("ggplot2")
-  library("maps")
-  library("RColorBrewer")
-  
-  # Seteo los parametros de mapa y gradiente 
-  mapa<-map_data("world2") 
-  min <- min(Data$value, na.rm = T)
-  max <- max(Data$value, na.rm = T)
-  Data$z=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
-  
-  # Aqui extiendo un poco la escala para que cubra todo
-  fillbreaks = Breaks
-  fillbreaks[length(Breaks)] <- max(Breaks)*1.1
-  fillbreaks[1] <- min(Breaks)*1.1
-  
-  # Grafico en si 
-g<-  ggplot() +                                          # o Breaks   
-    geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
-    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
-    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
-    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
-                         na.value = "transparent",
-                         breaks = Breaks,
-                         limits = c(min(Breaks), max(Breaks)),
-                         guide = guide_colorstrip(),
-                         oob  = scales::squish) +
-    ggtitle(Titulo)  +
-    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
-    theme(axis.text=element_text(size=12))+
-    theme(strip.text.x = element_text(size = 12, colour = "black"))+
-    facet_grid( metric~ week)  +   # esto es nuevo row ~ col
+for (m in groups){
+  for (b in Bins) {
+    df_mod <- reshape2::melt(readRDS(paste0("./MJO/ScoresBins/diff",m,b)))
+    # agrego columnas
+    df_mod$mod <- rep(m, nrow(df_mod))
+    df_mod$bin <- rep(b, nrow(df_mod))
+    df <- rbind(df,df_mod)
+  }
+}
+df = rename(df, "metric" ="L1")
+dt<-as.data.table(df)
+
+# Graficado y guardado
+
+for (w in c("Week 1", "Week 2", "Week 3", "Week 4")) { #por cada semana
+  for (metric in unique(df$metric)) { # para rmse y acc
     
-    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
-    theme(panel.background = element_rect(fill = "white",colour = "grey70",
-                                          size = 2, linetype = "solid"),
-          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
-                                          colour = "grey86"), 
-          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
-                                          colour = "grey86")) +
-    coord_cartesian()  +
-    theme(plot.title = element_text(hjust = 0.5))+
-    theme(legend.position  = "none")
-  
-  
-# Ahora agrego leyenda
-legend <- LeyendaCondicional(Breaks, Paleta, Labels = c("MJO APORTA", "MJO NO APORTA"))
-  grid.arrange(g, legend,
-               ncol=1, nrow = 2, 
-               widths = c(3), heights = c( 2.5,0.2))
+    # Restrinjo y grafico
+    data = dt[week == w & metric == metric]
+    titulo = paste("MJO eventos act-inact \n ",metric,w)
+    
+    # si haces el rmse tenes que poner direccion 1
+    # si haces acc tenes que poner direccion -1
+    if (metric=="rmse") {direccion = 1
+    } else {direccion = -1}
+    
+    fig<-GraphMJOCond(Data=data, Breaks = seq(-0.5,0.5,0.10), 
+                 Paleta = "RdBu", Direccion = direccion, Titulo = titulo)
+    ggsave(filename=paste0("./MJO/ScoresMaps/scores_MJODIFF_",w,"_",metric,".png"),
+           plot=fig,width = 10, height = 15)
+  }
   
 }
-ggplot(data = df_bin, aes(lon, lat)) +
-  geom_line(color = "steelblue", size = 1) +
-  geom_point(color = "steelblue") + 
-    
-  facet_wrap(~ week + metric)  +
-  theme(
-    strip.text.x = element_text(margin = margin(2, 0, 2, 0))
-  )
-GraphDiscrete <- function(Data, Breaks, Titulo, Label, Paleta, Direccion){
-  
-  ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
-  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
-  # son los valores
-  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
-  ## Titulo: character vector con el titulo del grafico
-  ## Label: character vector con el titulo para la barra de colores. Ej "Kelvin"
-  ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
-  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
-  ## LabelBreaks: un vector con las
-  
-  # Cargo paquetes
-  library("ggplot2")
-  library("maps")
-  library("RColorBrewer")
-  
-  # Seteo los parametros de mapa y gradiente 
-  mapa<-map_data("world2") 
-  min <- min(Data$value, na.rm = T)
-  max <- max(Data$value, na.rm = T)
-  Data$z=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
-  
-  # Aqui extiendo un poco la escala para que cubra todo
-  fillbreaks = Breaks
-  fillbreaks[length(Breaks)] <- max(Breaks)*1.1
-  fillbreaks[1] <- min(Breaks)*1.1
-  
-  # Grafico en si 
-  ggplot() +                                          # o Breaks   
-    geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
-    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
-    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
-    scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,
-                         na.value = "transparent",
-                         breaks = Breaks,
-                         limits = c(min(Breaks), max(Breaks)),
-                         guide = guide_colorstrip(),
-                         oob  = scales::squish) +
-    ggtitle(Titulo)  +
-    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
-    theme(axis.text=element_text(size=12))+
-    theme(strip.text.x = element_text(size = 12, colour = "black"))+
-    facet_grid( metric~ week)  +
-    
-    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
-    theme(panel.background = element_rect(fill = "white",colour = "grey70",
-                                          size = 2, linetype = "solid"),
-          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
-                                          colour = "grey86"), 
-          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
-                                          colour = "grey86")) +
-    coord_cartesian()  +
-    theme(plot.title = element_text(hjust = 0.5))
-    
-  
-  
-  grid.arrange(blankPlot, legend,  bp, vp,
-               ncol=2, nrow = 2, 
-               widths = c(2.7, 2.7), heights = c(0.2, 2.5))
 
 
+#--------------------------------------------------------------------------------------------------------
 # Hago el grafico
 # matrix 
 legend <- LeyendaCondicional(Breaks = seq(-0.2,0.2,0.05), Paleta = "RdBu", Labels = c("MJO APORTA","MJO NO APORTA"))
