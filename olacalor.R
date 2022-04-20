@@ -14,10 +14,15 @@ rm(list=ls())
 library(ggplot2)
 library(metR)
 
+# ----- EN PIKACHU-------
+# source("/vegeta/datos/SubX/mjo.lucia.cas/funciones.R")
+# svpath = "/home/lucia.castro/tesina2/resultados"
+# setwd("/vegeta/datos/SubX/mjo.lucia.cas")
+# ----- EN PIKACHU-------
+
 # Cargo mis funciones
-source("/vegeta/datos/SubX/mjo.lucia.cas/funciones.R")
-svpath = "/home/lucia.castro/tesina2/resultados"
-setwd("/vegeta/datos/SubX/mjo.lucia.cas")
+source("/home/lucia.castro/tesina/funciones.R")
+svpath = "/home/lucia.castro/SubX_processed_Rdata"
 
 # Modelos
 groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')
@@ -31,18 +36,25 @@ olaw2 = diasola[8:14] # 20 a 26
 olaw3 = diasola[15:19]  # 5 dias
 olaw <- list(olaw1,olaw2,olaw3)
 leadbin <- c(7,14,21)
+weeklabel <- c("olaw1","olaw2","olaw3")
+
+# Cargo datos OBSERVACIONES
+ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
 # Primera forma: Analizar como los modelos pronosticaro cada semana de la ola.
 # todos los modelos tienen inicializaciones en fechas diferentes, por lo tanto el lead a las
 # semanas de la ola seran distintos para c/u. VOy a considerar grupos de leads por ej (leads 2-5,lead 5-8)
-listagraficos <- list()
 
-for(w in olaw) { # por cada semana del evento
+df <- data.frame()
+
+for(we in 1:length(olaw)) { # por cada semana del evento
   for(m in groups) { # por cada modelo
+    
+    w = olaw[[we]]
     
     # Cargar datos del modelo (solo el subset nov-dic de 2013)
     targetdate <- readRDS(paste0("targetdate_",m,"_ONDEFM.rds"))
     startdate <- dimnames(targetdate)$startdate
-    mod <- readRDS(paste0("model_olacalor_",m,".rds"))
+    mod <- readRDS(paste0("/datos/SubX/mjo.lucia.cas/model_olacalor_",m,".rds"))
     
     for(l in leadbin) { # por cada lead
       # Buscar la inicializacion anterior a la semana del evento
@@ -64,40 +76,72 @@ for(w in olaw) { # por cada semana del evento
       
       # Evaluo en el stdate de la ola y los dias de la semana. luego promedio
       mod_ola <- apply(mod[,,hind_ola,stdate_ola], c(1,2), FUN = mean)
-      g <- GraphDiscrete(Data = ggDataFrame(mod_ola),Breaks = seq(-3,3,1),Label = "°C",
-                         Paleta = "RdBu", Direccion = -1,
-                         Titulo = paste0("LEAD ", l-6,"-",l)) + labs(title = NULL)
       
-      # Lo completo asi en vez de append porque sino guarda listas en vez de ggplots
-      len <- length(listagraficos)
-      listagraficos[[len+1]] <- g
+      # Convierto a dataframe y los voy combinando
+      df.ola <- reshape2::melt(mod_ola)
+      colnames(df.ola)<- c("lon","lat","value")
+      df.ola$model <- m
+      df.ola$lead <- paste0(l-6,"-",l)
+      df.ola$week <- weeklabel[we]
+      df <- rbind(df,df.ola)
       
+     
+      
+
     }# End loop lead
+    # ------------------------------------------------------------------------------
+    # O B S E R V A C I O N E S
+    # Para agregar las observaciones las voy a tratar como un lead diferente para el grafico final. 
+    # Todas las otras columnas son iguales excepto esa y la junto al df
+    
+    # Promedio semanal
+    prom <- apply(ar.anom[,,as.character(w)],c(1,2),FUN = mean)
+    df.obs <- reshape2::melt(prom)
+    df.obs$model <- m
+    df.obs$lead <- "CPC"
+    df.obs$week <- weeklabel[we]
+    df <- rbind(df,df.obs)
+    
   } # End loop modelo
 } # End loop semana
+
+# ------------------------------------------------------------------------------
+# O B S E R V A C I O N E S
+
+# Cargo datos
+ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
+caso = 0
+for(w in olaw) {
+  
+  sem <- format(w, "%d/%m")
+  # Promedio semanal
+  prom <- apply(ar.anom[,,as.character(w)],c(1,2),FUN = mean)
+  
+  # Graficar
+  go <- GraphDiscrete(Data = ggDataFrame(prom),Breaks = seq(-3,3,1),Label = "°C",
+                      Paleta = "RdBu", Direccion = -1,
+                      Titulo = paste0("T2M ANOM CPC \n",sem[1],"-",sem[length(sem)]))
+  caso <- caso +1
+  ggsave(paste0(svpath,"/obsola_",caso,".png"),go)
+  
+}
 
 
 # G R A F I C O S ---------------------------------------------------------
 # uno por cada semana
 
-# De esta forma puedo poner los nombres de los modelos en las filas
-png(paste0(svpath,"/olaw2.png"),width = 24, height = 30, units = "cm",res = 1080) # creo el objeto
-# lg <- tableGrob(c("", glabel), theme= ttheme_minimal(base_size = 8))     # Nombre fila
-# rg <- arrangeGrob(grobs = listagraficos[1:(7*3)], ncol=3,
-#                   top = textGrob("Ola de calor Dic 2013 \n 13/12 - 19/12"
-#                                  ,gp=gpar(fontsize=18)))
+dt <- as.data.table(df)
+fechaola <- c("13/12-19/12", "20/12-26/12","27/12-31/12")
 
-
-fil = c("LEAD 1-7","LEAD 8-14","LEAD 15-21")
-combine <- rbind(tableGrob(t(fil), theme = ttheme_minimal(), rows = ""),
-                 cbind(tableGrob(glabel, theme = ttheme_minimal()),
-                       arrangeGrob(grobs = listagraficos[22:42],nrow = 7,ncol=3),  size = "last"), size = "last")
-
-grid.newpage()
-grid.draw(combine)
-
-dev.off() # borra
-
+for (w in 1:3) {
+  
+  
+  titulo = paste("T2M ANOM OLA DE CALOR\n",fechaola[w])
+  fig = GraphGrupos(Data = dt[week == weeklabel[w]], Paleta = "RdBu", Direccion = -1,
+              Breaks = seq(-3,3,1), Label = "°C", Titulo = titulo)
+  ggsave(filename=paste0("./ola/temp_",weeklabel[w],".png"),
+         plot=fig,width = 10, height = 15)
+}
 
 # Segunda forma: Analizar las medias semanales ya calculadas de los mod vs las obs
 #
