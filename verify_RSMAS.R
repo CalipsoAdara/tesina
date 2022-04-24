@@ -99,7 +99,7 @@ me = apply(dif, c(1,2,4),FUN = mean, na.rm = TRUE)
 mae = apply(abs(dif), c(1,2,4), FUN = mean, na.rm = TRUE) 
 rmse = sqrt(apply(dif^2,c(1,2,4), FUN = mean, na.rm = TRUE))
 desvio = apply(dif,c(1,2,4),FUN = sd, na.rm = TRUE)
-var = (1-sqrt(rmse))/desvio
+var = 1-(sqrt(rmse)/desvio)
 
 # Para el calculo de ACC hago una vuelta mas, para recorrer todos los puntos y obtener un valor de correlacion
 acc <- array(NA, dim = c(66,76,4))
@@ -177,7 +177,7 @@ g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = 
 
 
 
-fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX RSMAS-CCSM4 tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX RSMAS-CCSM4 tasa (99-14, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
 ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_RSMAS.png",plot=fig,width = 10, height = 11)
 
 #---------------------------------------------------------------------------------------

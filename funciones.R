@@ -1179,7 +1179,7 @@ GraphGrupos <- function(Data, Breaks, Titulo, Paleta, Direccion,Label){
   
   # Grafico en si 
  ggplot() +                                          # o Breaks   
-    geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
+    geom_contour_fill(data=Data,aes(lon, lat, z = z),breaks = fillbreaks) +
     scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
     scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
     scale_fill_distiller(name=Label,palette=Paleta,direction= Direccion,

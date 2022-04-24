@@ -105,8 +105,8 @@ targetdateMODELOS <- list(targetdate_ESRL, targetdate_ECCC, targetdate_EMC,
 startdateMODELOS <- list(startdateESRL, startdateECCC, startdateEMC,
                      startdateGMAO, startdateRSMAS, startdateNRL)
 
-# Obtengo el periodo de 1999 a 2015 con solo octubre a marzo
-periodo = seq.Date(as.Date("1999-01-01"), as.Date("2015-12-31"), by = 1)
+# Obtengo el periodo de 1999 a 2014 con solo octubre a marzo
+periodo = seq.Date(as.Date("1999-01-01"), as.Date("2014-12-31"), by = 1)
 OM = c(1,2,3,10,11,12)
 oct_mar <- which(month(periodo) %in% OM) # posiciones donde el mes cae entre Octubre a Marzo
 periodo_OM <- periodo[oct_mar]
@@ -143,7 +143,7 @@ for (i in 1:length(sabadoMME)) { # Por cada sabado
   # Semana en cuestion del MME
   startweek = seq.Date(sabadoMME[i]-7,sabadoMME[i]-1,by=1) #desde el sabado anterior al viernes
   
-  for (mod in 1:5) { # por cada modelo
+  for (mod in 1:length(MODELOS)) { # por cada modelo
     
     # Que startdate cae en la semana del MME para cada modelo
     stdt = startdateMODELOS[[mod]] %in% startweek
@@ -297,7 +297,7 @@ for (m in 1:nmodels) {
   # Armo data.frames para graficar
   df <- reshape2::melt(data, value.name = "z")
   
-  titl = paste0("Predictibilidad ", models[m], " tasa (99-15, Oct-Mar)")
+  titl = paste0("Predictibilidad ", models[m], " tasa (99-14, Oct-Mar)")
   g <- GraphDiscreteMultiple(df, Breaks = seq(0,1,0.2) , Label = "ACC", Paleta = "YlOrRd",Direccion = "1")
   fig <- grid.arrange(g, ncol = 1,top = textGrob(titl,gp=gpar(fontsize=13,font=3)))
   fn <- paste0("/home/lucia.castro/SubX_processed_Rdata/predic_",models[m],".png")
