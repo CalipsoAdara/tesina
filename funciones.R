@@ -1107,7 +1107,7 @@ GraphMJOCond <- function(Data, Breaks, Titulo, Paleta, Direccion){
   mapa<-map_data("world2") 
   min <- min(Data$value, na.rm = T)
   max <- max(Data$value, na.rm = T)
-  Data$z=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
+  Data$value=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
   
   # Aqui extiendo un poco la escala para que cubra todo
   fillbreaks = Breaks

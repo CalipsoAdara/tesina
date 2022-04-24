@@ -74,7 +74,7 @@ for (g in 1:length(groups)) {
   mae = apply(abs(dif), c(1,2,4), FUN = mean, na.rm = TRUE) 
   rmse = sqrt(apply(dif^2,c(1,2,4), FUN = mean, na.rm = TRUE))
   desvio = apply(dif,c(1,2,4),FUN = sd, na.rm = TRUE)
-  var = (1-sqrt(rmse))/desvio
+  var = (1-(sqrt(rmse))/desvio)
   acc = ACC(Lon=66, Lat = 76, Model = modMJO, Anom = obsMJO) # tarda un cacho
   
   # Calculo estadistico de prueba
@@ -107,7 +107,7 @@ for (g in 1:length(groups)) {
   
   
   title = title <- paste("SubX ",grupo,"-",model," Inicios",nstartdateMJO,"/",nstartdate,
-                         "\nMJO active events tasa (99-15, Oct-Mar) ")
+                         "\nMJO active events tasa (99-14, Oct-Mar) ")
   fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
   ggsave(filename=paste0("./MJO/ScoresMaps/scores_map_MJO_act_",grupo,".png"),
          plot=fig,width = 10, height = 15)
