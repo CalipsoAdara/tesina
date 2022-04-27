@@ -241,20 +241,21 @@ dt<-as.data.table(df)
 # Graficado y guardado
 
 for (w in c("Week 1", "Week 2", "Week 3", "Week 4")) { #por cada semana
-  for (metric in unique(df$metric)) { # para rmse y acc
+  for (mt in unique(df$metric)) { # para rmse y acc
     
     # Restrinjo y grafico
-    data = dt[week == w & metric == metric]
-    titulo = paste("MJO eventos act-inact \n ",metric,w)
+    data = dt[week == w & metric == mt]
+    titulo = paste("MJO eventos act-inact \n ",mt,w)
     
     # si haces el rmse tenes que poner direccion 1
     # si haces acc tenes que poner direccion -1
-    if (metric=="rmse") {direccion = 1
+    if (mt=="rmse") {direccion = 1
     } else {direccion = -1}
     
     fig<-GraphMJOCond(Data=data, Breaks = seq(-0.5,0.5,0.10), 
                  Paleta = "RdBu", Direccion = direccion, Titulo = titulo)
-    ggsave(filename=paste0("./MJO/ScoresMaps/scores_MJODIFF_",w,"_",metric,".png"),
+    sem = substr(w,6,6)
+    ggsave(filename=paste0("./MJO/ScoresMaps/scores_MJODIFF_",sem,"_",mt,".png"),
            plot=fig,width = 10, height = 15)
   }
   

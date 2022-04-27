@@ -1207,3 +1207,52 @@ GraphGrupos <- function(Data, Breaks, Titulo, Paleta, Direccion,Label){
   
 
 }
+# FUNCIONES ----------------------------------------------------------------------------------
+Predictibilidad <- function(Modelo, Ensamble, FechaPronostico) {
+  ## Modelo: array de 4 dimensiones (lon,lat,lead,startdate)
+  ## Ensamble: array de 4 dimensiones (lon,lat,lead,startdate)
+  ## FechaPronostico: la cantidad de startdate. Ambos array deben tener las mismas dimensiones
+  
+  # Separo en semanas y promedio semanalmente
+  ensweek = ModelMediaSemanal(Ensamble, FechaPronostico)
+  modweek = ModelMediaSemanal(Modelo, FechaPronostico)
+  
+  # Correlaciono ensamble y el modelo restante por cada semana
+  corrw <- array(NA, dim = c(66,76,4))
+  for (w in 1:4) {
+    corrw[,,w] <- CorrWeek(ensweek[,,,w], modweek[,,,w])
+  }
+  return(corrw)
+}
+#------------------------------------------------------------------------------------------------
+CompletarFaltante <- function(Target, Stdt, ModeloObjetivo,Startweek, ModelNombre) {
+  ## Target: Vector logico
+  ## Stdt: Vector logico
+  ## ModeloObjetico: array de 3 dimensiones que deberia completarse con 66,76 y 28 lead
+  ## Startweek: Vector dates. la semana que se analiza.
+  ## ModelNombre
+  
+  # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
+  if (sum(Target)<28) {
+    faltante = 28 - sum(Target)
+    mod.faltante = array(NA, dim = c(66,76,faltante))
+    
+    # PRUEBA: QUE PASA CUANDO NO HAY MODELO ESA SEMANA
+    if (sum(Stdt)==0){
+      print(paste("La semana ",Startweek[1]," no tiene el modelo",ModelNombre))
+      
+      modelo_objetivo = mod.faltante
+    }else{
+      print(paste("La semana ",Startweek[1]," le faltan dias del modelo",ModelNombre))
+      
+      modelo_objetivo = abind(ModeloObjetivo,mod.faltante)
+    }
+  }
+  
+  # Si el modelo esta completo no hacer nada
+  if (sum(Target)==28) {
+    modelo_objetivo = ModeloObjetivo
+  }
+  return(modelo_objetivo)
+}
+#----------------------------------------------------------------------------------------
