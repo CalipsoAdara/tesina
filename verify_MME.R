@@ -98,7 +98,7 @@ me = apply(dif, c(1,2,4),FUN = mean, na.rm = TRUE)
 mae = apply(abs(dif), c(1,2,4), FUN = mean, na.rm = TRUE) 
 rmse = sqrt(apply(dif^2,c(1,2,4), FUN = mean, na.rm = TRUE))
 desvio = apply(dif,c(1,2,4),FUN = sd, na.rm = TRUE)
-var = 1-(sqrt(rmse)/desvio)
+var = 1-(rmse/desvio)
 
 # Para el calculo de ACC hago una vuelta mas, para recorrer todos los puntos y obtener un valor de correlacion
 acc <- array(NA, dim = c(66,76,4))
