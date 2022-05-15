@@ -1208,21 +1208,37 @@ GraphGrupos <- function(Data, Breaks, Titulo, Paleta, Direccion,Label){
 
 }
 # FUNCIONES ----------------------------------------------------------------------------------
-Predictibilidad <- function(Modelo, Ensamble, FechaPronostico) {
+# FUNCIONES ----------------------------------------------------------------------------------
+Predictibilidad <- function(Modelo, Ensamble) {
   ## Modelo: array de 4 dimensiones (lon,lat,lead,startdate)
   ## Ensamble: array de 4 dimensiones (lon,lat,lead,startdate)
-  ## FechaPronostico: la cantidad de startdate. Ambos array deben tener las mismas dimensiones
+  ##  Ambos array deben tener las mismas dimensiones
   
-  # Separo en semanas y promedio semanalmente
-  ensweek = ModelMediaSemanal(Ensamble, FechaPronostico)
-  modweek = ModelMediaSemanal(Modelo, FechaPronostico)
+  # Tomo las dimensiones de los array (para ambas son las mismas)
+  lon = dim(Modelo)[1]
+  lat = dim(Modelo)[2]
+  lead = dim(Modelo)[3]
+  starts = dim(Modelo)[4]
   
-  # Correlaciono ensamble y el modelo restante por cada semana
-  corrw <- array(NA, dim = c(66,76,4))
-  for (w in 1:4) {
-    corrw[,,w] <- CorrWeek(ensweek[,,,w], modweek[,,,w])
+  # array a llenar
+  acc = array(NA, dim = c(lon,lat,lead))
+  
+  # TIENE QUE HABER UNA MEJOR FORMA DE CORRELACIONAR 2 MATRICES EN LA TERCERA DIMENSION
+  # Y OBTENER UN VALOR POR PUNTO
+  
+  for (l in 1:lead) { # por cada lead
+    for (x in 1:lon) { # por cada longitud
+      for (y in 1:lat) { # por cada latitud
+        
+        mod_punto = Modelo[x,y,l,]
+        ens_punto = Ensamble[x,y,l,]
+        acc[x,y,l] <- cor(mod_punto,ens_punto,use="pairwise.complete.obs",method = "pearson")
+      }
+      
+    }
+    
   }
-  return(corrw)
+  return(acc)
 }
 #------------------------------------------------------------------------------------------------
 CompletarFaltante <- function(Target, Stdt, ModeloObjetivo,Startweek, ModelNombre) {

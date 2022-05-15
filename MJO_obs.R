@@ -180,7 +180,7 @@ y=match(EvenFaseComp, diasfases$EvenFase)
 
 
 # Cargo datos de ONI (NIÑO)
-t<-download.file("https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php", destfile = "./MJO/oni")
+t<-download.file("https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/detrend.nino34.ascii.txt", destfile = "./MJO/oni")
 t = download.oni.cpc.ncep.noaa(GUI = FALSE)
 #Cargo datos de MEI (el niño)
 mei <- read.table("./MJO/meiv2.data", header = F, nrows = 43, skip = 1,

@@ -13,6 +13,8 @@ library(data.table)
 library(scales)
 library(ggpubr)
 library("grid")
+library(ggplot2)
+library(metR)
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
@@ -24,21 +26,36 @@ savepath = "/home/lucia.castro/SubX_processed_Rdata/"
 setwd(savepath)
 
 # FUNCIONES ----------------------------------------------------------------------------------
-Predictibilidad <- function(Modelo, Ensamble, FechaPronostico) {
+Predictibilidad <- function(Modelo, Ensamble) {
   ## Modelo: array de 4 dimensiones (lon,lat,lead,startdate)
   ## Ensamble: array de 4 dimensiones (lon,lat,lead,startdate)
-  ## FechaPronostico: la cantidad de startdate. Ambos array deben tener las mismas dimensiones
+  ##  Ambos array deben tener las mismas dimensiones
   
-  # Separo en semanas y promedio semanalmente
-  ensweek = ModelMediaSemanal(Ensamble, FechaPronostico)
-  modweek = ModelMediaSemanal(Modelo, FechaPronostico)
+  # Tomo las dimensiones de los array (para ambas son las mismas)
+  lon = dim(Modelo)[1]
+  lat = dim(Modelo)[2]
+  lead = dim(Modelo)[3]
+  starts = dim(Modelo)[4]
   
-  # Correlaciono ensamble y el modelo restante por cada semana
-  corrw <- array(NA, dim = c(66,76,4))
-  for (w in 1:4) {
-    corrw[,,w] <- CorrWeek(ensweek[,,,w], modweek[,,,w])
-  }
-  return(corrw)
+  # array a llenar
+  acc = array(NA, dim = c(lon,lat,lead))
+  
+  # TIENE QUE HABER UNA MEJOR FORMA DE CORRELACIONAR 2 MATRICES EN LA TERCERA DIMENSION
+  # Y OBTENER UN VALOR POR PUNTO
+
+    for (l in 1:lead) { # por cada lead
+      for (x in 1:lon) { # por cada longitud
+        for (y in 1:lat) { # por cada latitud
+          
+          mod_punto = Modelo[x,y,l,]
+          ens_punto = Ensamble[x,y,l,]
+          acc[x,y,l] <- cor(mod_punto,ens_punto,use="pairwise.complete.obs",method = "pearson")
+        }
+        
+      }
+      
+    }
+    return(acc)
 }
 #------------------------------------------------------------------------------------------------
 CompletarFaltante <- function(Target, Stdt, ModeloObjetivo) {
@@ -208,7 +225,7 @@ saveRDS(targetdateMME,paste0("./targetdate_MME_ONDEFM.rds"))
 # Predictibilidad
 # correlacionar un modelo contra la media del ensamble formada por el resto de los modelos, 
 # esto repetirlo con cada modelo y sacar el promedio de esa correlación
-cor_mod <- array(NA, dim = c(66,76,4,nmodels))
+cor_mod <- array(NA, dim = c(66,76,28,nmodels))
 
 for (model in 1:nmodels) {
   
@@ -275,16 +292,35 @@ for (model in 1:nmodels) {
     
   } # End loop sabados  
   # Promedio sobre los modelos (cuarta dimension)
-  MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)
+  MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)  # Creado la media del ensamble n-1
 
-  cor_mod[,,,model] <- Predictibilidad(mod_aparte, MME_pro, length(sabadoMME))
+  # Correlacion entre mod y ens n-1
+  cor_mod[,,,model] <- Predictibilidad(mod_aparte, MME_pro)
   
 } # End loop models
   
+# Ahora promedio todas las correlaciones obtenidad de cada modelo (cuarta dimension)
+predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
+
 # Guardo
-saveRDS(cor_mod, "./predict.rds")
+saveRDS(predictibilidad, "./predict.rds")
 
 # G R A F I C O S ------------------------------------
+
+predic <- readRDS("predict.rds")
+
+# convierto a data frame para las 4 weeks
+dimnames(predic) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
+                         "week" = c(rep("Week 1",7),
+                                    rep("Week 2",7),
+                                    rep("Week 3",7),
+                                    rep("Week 4",7)))
+df <- reshape2::melt(predic)
+colnames(df) <- c("x","y","week","z")
+g<-GraphDiscreteMultiple(Data=df,Breaks = seq(0,1,0.2),Label = "ACC",Paleta = "Greens",Direccion = 1)
+g + ggtitle(paste0("Predictibilidad  \ntasa (99-14, Oct-Mar)"))
+
+ggsave(filename = "./predic.png",plot=g,width = 10, height = 4)
 
 for (m in 1:nmodels) {
   
@@ -304,7 +340,8 @@ for (m in 1:nmodels) {
   ggsave(filename=fn,plot=fig,width = 10, height = 4)
 }
 
+cor(matrix1, matrix2)
+matrix1 = matrix(data = 1:12, nrow=3, ncol = 4)
 
-
-
+matrix2 = matrix(data = 2:13, nrow=3, ncol = 4)
 
