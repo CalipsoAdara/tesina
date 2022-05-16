@@ -130,7 +130,7 @@ tgdtMMEMJO <- tgdtMME[,posMJOmme]
 stdtMMEMJO <- as.Date(stdtMME[posMJOmme])
 
 # Predictibilidad ahora solo con los startdates durante eventos activos MJO
-predicti <- array(NA, dim = c(66,76,4,nmodels))
+predicti <- array(NA, dim = c(66,76,28,nmodels))
 
 for (model in 1:nmodels) {
   
@@ -199,15 +199,133 @@ for (model in 1:nmodels) {
   # Promedio sobre los modelos (cuarta dimension)
   MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)
   
-  predicti[,,,model] <- Predictibilidad(mod_aparte, MME_pro, length(stdtMMEMJO))
+  predicti[,,,model] <- Predictibilidad(mod_aparte, MME_pro)
   
 } # End loop models
 
+# Ahora promedio todas las correlaciones obtenidad de cada modelo (cuarta dimension)
+predictibilidad = apply(predicti , c(1,2,3), mean, na.rm = T)
+
 # GUARDO
-saveRDS(predicti, "./MJO/predict_MJO.rds")
+saveRDS(predictibilidad, "./MJO/predict_MJO.rds")
+
+#----------------------------------------------------------------------------------------------------------
+# Predictibilidad ahora solo con los startdates durante eventos inactivos MJO
+# Restrinjo los datos solo a las fechas donde hubo eventos activos de MJO
+MODELOSNOMJO <- list()
+tgdtNOMJO <- list()
+stdtNOMJO <- list()
+for (m in 1:nmodels){
+  mod <- MODELOS[[m]]
+  tgdt <- targetdateMODELOS[[m]]
+  stdt <- startdateMODELOS[[m]]
+  
+  # Busco que startdates coinciden con los eventos activos
+  posMJO = stdt %in% fechas_act
+  MODELOSNOMJO[[m]] <- mod[,,,!posMJO]
+  tgdtNOMJO[[m]] <- tgdt[,!posMJO]
+  stdtNOMJO[[m]] <- stdt[!posMJO]
+}
+# Restrinjo las fechas del Ensamble tmb
+posMJOmme <- stdtMME %in% fechas_act
+MMENOMJO <- MME[,,,!posMJOmme]
+tgdtMMENOMJO <- tgdtMME[,!posMJOmme]
+stdtMMENOMJO <- as.Date(stdtMME[!posMJOmme])
+
+predicti <- array(NA, dim = c(66,76,28,nmodels))
+
+for (model in 1:nmodels) {
+  
+  # Tomo el modelo a comparar contra la EM del resto de los mod
+  mod_restante_stdate = stdtNOMJO[[model]]
+  mod_restante_tgdate = tgdtNOMJO[[model]]
+  MODELO_restante = MODELOSNOMJO[[model]]
+  
+  mod_ensamble_stdate = stdtNOMJO[-model]
+  mod_ensamble_tgdate = tgdtNOMJO[-model]
+  MODELOS_ensamble = MODELOSNOMJO[-model]
+  
+  # array a completar 
+  MME_nmenos1 <- array(NA, dim = c(66,76,28,(nmodels-1),length(stdtMMENOMJO)))
+  mod_aparte <- array(NA, dim = c(66,76,28,length(stdtMMENOMJO)))
+  
+  for (i in 1:length(stdtMMEMJO)) { # Por cada sabado
+    
+    # Semana y lead en cuestion del MME
+    startweek = as.character(seq.Date(stdtMMENOMJO[i]-7,stdtMMENOMJO[i]-1,by=1)) #desde el sabado anterior al viernes
+    leadMME = tgdtMMENOMJO[,i]
+    
+    # MODELO RESTANTE ---------------------------------------------
+    # Que startdate cae en la semana del MME para el modelo restante
+    stdt_restante = mod_restante_stdate %in% startweek
+    # Tomar la inicializacion mas cercana al sabado de pronostico
+    if (sum(stdt_restante)>1) {stdt_restante = last(which(stdt_restante))}
+    
+    # Evaluo el modelo restante en las fechas que coincide con MME
+    target_restante = mod_restante_tgdate[,stdt_restante] %in% leadMME
+    modelo_objetivo_rest = MODELO_restante[,,target_restante,stdt_restante]
+    
+    # Llenar con NA si faltan dias 
+    modelo_objetivo_rest = CompletarFaltante(Target = target_restante, 
+                                             Stdt = stdt_restante, 
+                                             ModeloObjetivo = modelo_objetivo_rest)
+    
+    # MEDIA ENSAMBLE N-1 MODELOS ----------------------------------
+    for (mod in 1:(nmodels-1)) { # por cada modelo
+      # Que startdate cae en la semana del MME para cada modelo
+      stdt = mod_ensamble_stdate[[mod]] %in% startweek
+      
+      # Tomar la inicializacion mas cercana al sabado de pronostico
+      if (sum(stdt)>1) {    # Hay mas de un inicio en la semana
+        stdt = last(which(stdt))}
+      
+      # Quiero saber que lead hace que coincida el targetdate del modelo con el targetdate del MME 
+      leadMODELO = mod_ensamble_tgdate[[mod]]
+      target = leadMODELO[,stdt] %in% leadMME
+      
+      # Evaluo el modelo en esas fechas
+      modelo = MODELOS_ensamble[[mod]]
+      modelo_objetivo = modelo[,,target,stdt]
+      
+      # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
+      modelo_objetivo = CompletarFaltante(target, stdt, modelo_objetivo)
+      
+      
+      # Guardo
+      MME_nmenos1[,,,mod,i] <- modelo_objetivo
+      mod_aparte[,,,i] <- modelo_objetivo_rest
+      
+    } # End loop media ensamble
+    
+  } # End loop sabados  
+  # Promedio sobre los modelos (cuarta dimension)
+  MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)
+  
+  predicti[,,,model] <- Predictibilidad(mod_aparte, MME_pro)
+  
+} # End loop models
+
+# Ahora promedio todas las correlaciones obtenidad de cada modelo (cuarta dimension)
+predictibilidad = apply(predicti , c(1,2,3), mean, na.rm = T)
+
+# GUARDO
+saveRDS(predictibilidad, "./MJO/predict_NOMJO.rds")
 
 # G R A F I C O S ------------------------------------
+predicti <- readRDS("./MJO/predict_MJO.rds")
 
+# convierto a data frame para las 4 weeks
+dimnames(predicti) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
+                         "week" = c(rep("Week 1",7),
+                                    rep("Week 2",7),
+                                    rep("Week 3",7),
+                                    rep("Week 4",7)))
+df <- reshape2::melt(predicti)
+colnames(df) <- c("x","y","week","z")
+g<-GraphDiscreteMultiple(Data=df,Breaks = seq(0,1,0.2),Label = "ACC",Paleta = "Greens",Direccion = 1)
+g + ggtitle(paste0("Predictibilidad MJO activos \ntasa (99-14, Oct-Mar)"))
+
+ggsave(filename = "./MJO/predicMJO.png",plot=g,width = 10, height = 4)
 for (m in 1:nmodels) {
   
   # Renombro dimensiones 
@@ -229,19 +347,168 @@ for (m in 1:nmodels) {
 #----------------------------------------------------------------------------------------
 # Ahora grafico la diferencia entre la predictibilidad total y la predictiblidad 
 # de solo los eventos activos de MJO
+##
+# SI ES TOTAL - ACT DE MJO DONDE SEA NEGATIVO ------> APORTA MJO
+# SI ES ACT - TOTAL DONDE SEA POSITIVO ----------> APORTA MJO
 
 # cargo predictibilidad total
-predtotal <- readRDS("./predict.rds")
+predtotal <- readRDS("./MJO/predict_NOMJO.rds")
 predMJO <- readRDS("./MJO/predict_MJO.rds")
 
-pred_diff <- predtotal - predMJO
+pred_diff <- predMJO - predtotal
 
-for (g in 1:nmodels) {
-  df = ggScoreSemanal(pred_diff[,,,g])
+# convierto a data frame para las 4 weeks
+dimnames(pred_diff) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
+                           "week" = c(rep("Week 1",7),
+                                      rep("Week 2",7),
+                                      rep("Week 3",7),
+                                      rep("Week 4",7)))
+df <- reshape2::melt(pred_diff)
+colnames(df) <- c("x","y","week","z")
+
+g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.2,0.2,0.05),Label = "ACC",Paleta = "RdBu",Direccion = -1)
+g + ggtitle(paste0("Predictibilidad MJO ACT - INACT \ntasa (99-14, Oct-Mar)"))
+
+ggsave(filename = "./MJO/predic_resta_actinact.png",plot=g,width = 10, height = 4)
+
+
+#------------------------------ ----------------------------------------------------------
+# Ahora con fechas extremas yaay
+
+# Cargo datos de fechas extremas
+ext <- read.csv("./SubX_processed_Rdata/ext.csv",stringsAsFactors = F)
+
+extrema = BuscarFechaExtrema(Ext = ext, Columna = "TOTAL90",Startdate = stdtMME)
+
+# Remuevo posiciones repetidas y ordeno de menor a mayor
+extrema = sort(unique(extrema))
+
+colnombre <- c("TOTAL90","TOTAL10")
+
+for (p in colnombre) {
   
-  title = paste0("Predictibilidad TOTAL - MJO ", models[g], "\ntasa (99-15, Oct-Mar)")
-  gr <- GraphDiscreteMultiple(df, Breaks = seq(-0.1,0.1,0.02) , Label = "ACC", Paleta = "RdBu",Direccion = "-1")
-  fig <- grid.arrange(gr, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
-  fn <- paste0("/home/lucia.castro/SubX_processed_Rdata/MJO/predicdiff_MJO_",models[g],".png")
-  ggsave(filename=fn,plot=fig,width = 10, height = 4)
+  # Busco las fehcas extremas
+  extrema = BuscarFechaExtrema(Ext = ext, Columna = p,Startdate = stdtMME)
+  # Remuevo posiciones repetidas y ordeno de menor a mayor
+  extrema = sort(unique(extrema))
+  
+  # Evaluo en mme para separar en fechas extrema y no extremas
+  stdtMME_ext = stdtMME[extrema]
+  tgdtMME_ext = tgdtMME[,extrema]
+  
+  stdtMME_noext = stdtMME[-extrema]
+  tgdtMME_noext = tgdtMME[,-extrema]
+  #Predictibilidad
+  predic_ext = EnsamblesPredictiblidad(Modelos=MODELOS,
+                          TgdtMod=targetdateMODELOS, 
+                          StdtMod=startdateMODELOS, 
+                          FechEnsam = stdtMME_ext,
+                          TgdtEnsam = tgdtMME_ext)
+  
+  predic_noext = EnsamblesPredictiblidad(Modelos=MODELOS,
+                                       TgdtMod=targetdateMODELOS, 
+                                       StdtMod=startdateMODELOS, 
+                                       FechEnsam = stdtMME_noext,
+                                       TgdtEnsam = tgdtMME_noext)
+  # Guardo
+  indice = substr(p,6,7)
+  saveRDS(predic_ext, paste0("./predict_ext",indice,".rds"))
+  saveRDS(predic_noext, paste0("./predict_noext",indice,".rds"))
+  
+}
+
+EnsamblesPredictiblidad(Modelos=MODELOS,
+                        TgdtMod=targetdateMODELOS, 
+                        StdtMod=startdateMODELOS, 
+                        FechEnsam,
+                        TgdtEnsam)
+
+EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsam) {
+  #Modelos: lista de los datos de los modelos
+  #TgdtMod: LIsta de los targetdate de modelos 
+  #StdtMod: Lista de los startdate de los modelos
+  #FechEnsam: Vector de fechas donde hacer la predictibilidad. EJ: todos los sabados de mme
+  #TgdtEnsam: targetdate del ensamble deseado
+  
+  
+  nmodels = length(Modelos)
+
+  #ARRAY A LLENAR
+  cor_mod <- array(NA, dim = c(66,76,28,nmodels))
+  
+  for (model in 1:nmodels) {
+    
+    # Tomo el modelo a comparar contra la EM del resto de los mod
+    mod_restante_stdate = StdtMod[[model]]
+    mod_restante_tgdate = TgdtMod[[model]]
+    MODELO_restante = Modelos[[model]]
+    
+    mod_ensamble_stdate = StdtMod[-model]
+    mod_ensamble_tgdate = TgdtMod[-model]
+    MODELOS_ensamble = Modelos[-model]
+    
+    # array a completar 
+    MME_nmenos1 <- array(NA, dim = c(66,76,28,(nmodels-1),length(FechEnsam)))
+    mod_aparte <- array(NA, dim = c(66,76,28,length(FechEnsam)))
+    
+    for (i in 1:length(FechEnsam)) { # Por cada fecha
+      
+      # Semana y lead en cuestion del MME
+      startweek = seq.Date(FechEnsam[i]-7,FechEnsam[i]-1,by=1) #desde el sabado anterior al viernes
+      leadMME = TgdtEnsam[,i]
+      
+      # MODELO RESTANTE ---------------------------------------------
+      # Que startdate cae en la semana del MME para el modelo restante
+      stdt_restante = mod_restante_stdate %in% startweek
+      # Tomar la inicializacion mas cercana al sabado de pronostico
+      if (sum(stdt_restante)>1) {stdt_restante = last(which(stdt_restante))}
+      
+      # Evaluo el modelo restante en las fechas que coincide con MME
+      target_restante = mod_restante_tgdate[,stdt_restante] %in% leadMME
+      modelo_objetivo_rest = MODELO_restante[,,target_restante,stdt_restante]
+      
+      # Llenar con NA si faltan dias 
+      modelo_objetivo_rest = CompletarFaltante(Target = target_restante, 
+                                               Stdt = stdt_restante, 
+                                               ModeloObjetivo = modelo_objetivo_rest)
+      
+      # MEDIA ENSAMBLE N-1 MODELOS ----------------------------------
+      for (mod in 1:(nmodels-1)) { # por cada modelo
+        # Que startdate cae en la semana del MME para cada modelo
+        stdt = mod_ensamble_stdate[[mod]] %in% startweek
+        
+        # Tomar la inicializacion mas cercana al sabado de pronostico
+        if (sum(stdt)>1) {    # Hay mas de un inicio en la semana
+          stdt = last(which(stdt))}
+        
+        # Quiero saber que lead hace que coincida el targetdate del modelo con el targetdate del MME 
+        leadMODELO = mod_ensamble_tgdate[[mod]]
+        target = leadMODELO[,stdt] %in% leadMME
+        
+        # Evaluo el modelo en esas fechas
+        modelo = MODELOS_ensamble[[mod]]
+        modelo_objetivo = modelo[,,target,stdt]
+        
+        # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
+        modelo_objetivo = CompletarFaltante(target, stdt, modelo_objetivo)
+        
+        
+        # Guardo
+        MME_nmenos1[,,,mod,i] <- modelo_objetivo
+        mod_aparte[,,,i] <- modelo_objetivo_rest
+        
+      } # End loop media ensamble
+      
+    } # End loop sabados  
+    # Promedio sobre los modelos (cuarta dimension)
+    MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)  # Creado la media del ensamble n-1
+    
+    # Correlacion entre mod y ens n-1
+    cor_mod[,,,model] <- Predictibilidad(mod_aparte, MME_pro)
+    
+  } # End loop models
+  
+  # Ahora promedio todas las correlaciones obtenidad de cada modelo (cuarta dimension)
+  predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
+  return(predictibilidad)
 }
