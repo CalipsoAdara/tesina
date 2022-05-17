@@ -376,13 +376,7 @@ ggsave(filename = "./MJO/predic_resta_actinact.png",plot=g,width = 10, height = 
 # Ahora con fechas extremas yaay
 
 # Cargo datos de fechas extremas
-ext <- read.csv("./SubX_processed_Rdata/ext.csv",stringsAsFactors = F)
-
-extrema = BuscarFechaExtrema(Ext = ext, Columna = "TOTAL90",Startdate = stdtMME)
-
-# Remuevo posiciones repetidas y ordeno de menor a mayor
-extrema = sort(unique(extrema))
-
+ext <- read.csv("./ext.csv",stringsAsFactors = F)
 colnombre <- c("TOTAL90","TOTAL10")
 
 for (p in colnombre) {
@@ -412,16 +406,41 @@ for (p in colnombre) {
                                        TgdtEnsam = tgdtMME_noext)
   # Guardo
   indice = substr(p,6,7)
-  saveRDS(predic_ext, paste0("./predict_ext",indice,".rds"))
-  saveRDS(predic_noext, paste0("./predict_noext",indice,".rds"))
+  saveRDS(predic_ext, paste0("./ext/predict_ext",indice,".rds"))
+  saveRDS(predic_noext, paste0("./ext/predict_noext",indice,".rds"))
+  
+}
+# G R A F I C O S ------------------------------------
+
+# si restas
+# ext - no ext ------> positivo aporta mas las fechas ext
+
+for (i in 1:length(colnombre)) {
+  
+  indice = colnombre[i]
+  p = substr(indice,6,7)
+  # Cargo los datos para la resta
+  pred_ext <- readRDS(paste0("./ext/predict_ext",p,".rds"))
+  pred_noext <- readRDS(paste0("./ext/predict_noext",p,".rds"))
+  
+  # Resta
+  resta <- pred_ext - pred_noext
+  
+  # convierto a data frame para las 4 weeks
+  dimnames(resta) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
+                             "week" = c(rep("Week 1",7),
+                                        rep("Week 2",7),
+                                        rep("Week 3",7),
+                                        rep("Week 4",7)))
+  df <- reshape2::melt(resta)
+  colnames(df) <- c("x","y","week","z")
+  g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.2,0.2,0.05),Label = "ACC",Paleta = "RdBu",Direccion = -1)
+  g + ggtitle(paste0("Predictibilidad \n P",p," EXT-NO EXT \ntasa (99-14, Oct-Mar)"))
+  
+  ggsave(filename = paste0("./ext/predic_resta_p",p,".png"),plot=g,width = 10, height = 4)
   
 }
 
-EnsamblesPredictiblidad(Modelos=MODELOS,
-                        TgdtMod=targetdateMODELOS, 
-                        StdtMod=startdateMODELOS, 
-                        FechEnsam,
-                        TgdtEnsam)
 
 EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsam) {
   #Modelos: lista de los datos de los modelos
@@ -430,7 +449,7 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
   #FechEnsam: Vector de fechas donde hacer la predictibilidad. EJ: todos los sabados de mme
   #TgdtEnsam: targetdate del ensamble deseado
   
-  
+  FechEnsam = as.Date(FechEnsam)
   nmodels = length(Modelos)
 
   #ARRAY A LLENAR
@@ -454,7 +473,7 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
     for (i in 1:length(FechEnsam)) { # Por cada fecha
       
       # Semana y lead en cuestion del MME
-      startweek = seq.Date(FechEnsam[i]-7,FechEnsam[i]-1,by=1) #desde el sabado anterior al viernes
+      startweek = as.character(seq.Date(FechEnsam[i]-7,FechEnsam[i]-1,by=1)) #desde el sabado anterior al viernes
       leadMME = TgdtEnsam[,i]
       
       # MODELO RESTANTE ---------------------------------------------
