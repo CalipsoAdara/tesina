@@ -27,35 +27,15 @@ setwd(savepath)
 models = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL")
 nmodels = length(models)
 
-ESRL <- readRDS("model_ESRL_ONDEFM.rds")
-ECCC <- readRDS("model_ECCC_ONDEFM.rds")
-EMC <- readRDS("model_EMC_ONDEFM.rds")
-GMAO <- readRDS("model_GMAO_ONDEFM.rds")
-RSMAS <- readRDS("model_RSMAS_ONDEFM.rds")
-NRL <- readRDS("model_NRL_ONDEFM.rds")
-targetdate_ESRL <- readRDS("targetdate_ESRL_ONDEFM.rds")
-targetdate_ECCC <- readRDS("targetdate_ECCC_ONDEFM.rds")
-targetdate_EMC <- readRDS("targetdate_EMC_ONDEFM.rds")
-targetdate_GMAO <- readRDS("targetdate_GMAO_ONDEFM.rds")
-targetdate_RSMAS <- readRDS("targetdate_RSMAS_ONDEFM.rds")
-targetdate_NRL <- readRDS("targetdate_NRL_ONDEFM.rds")
+MODELOS <- list()
+targetdateMODELOS <- list()
+startdateMODELOS <- list()
 
-# startdate de los modelos 
-startdateESRL = as.Date(dimnames(targetdate_ESRL)$startdate)
-startdateECCC = as.Date(dimnames(targetdate_ECCC)$startdate)
-startdateEMC = as.Date(dimnames(targetdate_EMC)$startdate)
-startdateGMAO = as.Date(dimnames(targetdate_GMAO)$startdate)
-startdateRSMAS = as.Date(dimnames(targetdate_RSMAS)$startdate)
-startdateNRL = as.Date(dimnames(targetdate_NRL)$startdate)
-
-#
-# Listas de todos los modelos 
-MODELOS <- list(ESRL, ECCC, EMC, GMAO, RSMAS, NRL)
-
-targetdateMODELOS <- list(targetdate_ESRL, targetdate_ECCC, targetdate_EMC, 
-                          targetdate_GMAO, targetdate_RSMAS,targetdate_NRL)
-startdateMODELOS <- list(startdateESRL, startdateECCC, startdateEMC,
-                         startdateGMAO, startdateRSMAS, startdateNRL)
+for (m in 1:nmodels) {
+  MODELOS[[m]] <- readRDS(paste0("./model_",models[m],"_ONDEFM.rds"))
+  targetdateMODELOS[[m]] <- readRDS(paste0("./targetdate_",models[m],"_ONDEFM.rds"))
+  startdateMODELOS[[m]] <- dimnames(targetdateMODELOS[[m]])$startdate
+}
 
 # MME
 targetdateMME <- readRDS(paste0("./targetdate_MME_ONDEFM.rds"))
@@ -77,7 +57,7 @@ targetdateMMEMJO <- targetdateMME[,sabadosMME %in% fechas_act]
 # Predictibilidad
 # correlacionar un modelo contra la media del ensamble formada por el resto de los modelos, 
 # esto repetirlo con cada modelo y sacar el promedio de esa correlación
-cor_mod <- array(NA, dim = c(66,76,4,nmodels))
+
 
 for (model in 1:nmodels) {
   
@@ -98,7 +78,7 @@ for (model in 1:nmodels) {
   for (i in 1:length(sabMJO)) { # Por cada sabado
     
     # Semana y lead en cuestion del MME
-    startweek = seq.Date(sabMJO[i]-7,sabMJO[i]-1,by=1) #desde el sabado anterior al viernes
+    startweek = as.character(seq.Date(sabMJO[i]-7,sabMJO[i]-1,by=1)) #desde el sabado anterior al viernes
     leadMME = targetdateMMEMJO[,i]
     
     # MODELO RESTANTE ---------------------------------------------
@@ -151,12 +131,23 @@ for (model in 1:nmodels) {
   MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)
   print(paste("termino el promedio sabados del modelo",models[model]))
   
-  cor_mod[,,,model] <- Predictibilidad(mod_aparte, MME_pro, length(sabMJO))
+  cor_mod <- Predictibilidad(mod_aparte, MME_pro)
+  saveRDS(cor_mod, paste0("./MJO/predic/predic_",models[model]))
   print(paste("termino la correlacion del modelo",models[model]))
+  
+  # ELimino para hacer espacio
+  rm(cor_mod)
   
 } # End loop models
 
 # Ahora promedio todas las correlaciones obtenidad de cada modelo (cuarta dimension)
+# Guarde todas las correlaciones por separado para que sea menos pesado y ahora promedio
+
+cor_mod <- array(NA, dim = c(66,76,28,nmodels))
+for (m in nmodels) {
+  cor_mod[,,,model] <- readRDS(paste0("./MJO/predic/predic_",models[m]))
+}
+
 predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
 
 # Guardo
@@ -169,7 +160,7 @@ saveRDS(predictibilidad, "./predictmjo.rds")
 # correlacionar un modelo contra la media del ensamble formada por el resto de los modelos, 
 # esto repetirlo con cada modelo y sacar el promedio de esa correlación
 sabNOMJO <- as.Date(sabadosMME[!sabadosMME %in% fechas_act])
-cor_mod <- array(NA, dim = c(66,76,4,nmodels))
+cor_mod <- array(NA, dim = c(66,76,28,nmodels))
 
 for (model in 1:nmodels) {
   
