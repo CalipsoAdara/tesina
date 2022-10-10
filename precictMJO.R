@@ -151,8 +151,9 @@ for (m in nmodels) {
 predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
 
 # Guardo
-saveRDS(predictibilidad, "./predictmjo.rds")
+saveRDS(predictibilidad, "./MJO/predic/predictmjo.rds")
 
+rm(predictibilidad, cor_mod)
 ##-------------------------------------------------------------------------------------------------
 # Predictibilidad de NO MJO
 #-------------------------------------------------------------------------------------------------
@@ -160,7 +161,7 @@ saveRDS(predictibilidad, "./predictmjo.rds")
 # correlacionar un modelo contra la media del ensamble formada por el resto de los modelos, 
 # esto repetirlo con cada modelo y sacar el promedio de esa correlación
 sabNOMJO <- as.Date(sabadosMME[!sabadosMME %in% fechas_act])
-cor_mod <- array(NA, dim = c(66,76,28,nmodels))
+
 
 for (model in 1:nmodels) {
   
@@ -181,7 +182,7 @@ for (model in 1:nmodels) {
   for (i in 1:length(sabNOMJO)) { # Por cada sabado
     
     # Semana y lead en cuestion del MME
-    startweek = seq.Date(sabNOMJO[i]-7,sabNOMJO[i]-1,by=1) #desde el sabado anterior al viernes
+    startweek = as.character(seq.Date(sabNOMJO[i]-7,sabNOMJO[i]-1,by=1)) #desde el sabado anterior al viernes
     leadMME = targetdateMMEMJO[,i]
     
     # MODELO RESTANTE ---------------------------------------------
@@ -234,10 +235,26 @@ for (model in 1:nmodels) {
   MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)
   print(paste("termino el promedio sabados del modelo",models[model]))
   
-  cor_mod[,,,model] <- Predictibilidad(mod_aparte, MME_pro, length(sabNOMJO))
+  cor_mod <- Predictibilidad(mod_aparte, MME_pro)
+  saveRDS(cor_mod, paste0("./MJO/predic/predicNOMJO_",models[model]))
   print(paste("termino la correlacion del modelo",models[model]))
+  
+  # ELimino para hacer espacio
+  rm(cor_mod)
   
 } # End loop models
 
+
+# Ahora promedio todas las correlaciones obtenidad de cada modelo (cuarta dimension)
+# Guarde todas las correlaciones por separado para que sea menos pesado y ahora promedio
+
+cor_mod <- array(NA, dim = c(66,76,28,nmodels))
+for (m in nmodels) {
+  cor_mod[,,,model] <- readRDS(paste0("./MJO/predic/predicNOMJO_",models[m]))
+}
+
+predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
+
 # Guardo
-saveRDS(cor_mod, "./predictnomjo.rds")
+saveRDS(predictibilidad, "./MJO/predic/predictnomjo.rds")
+
