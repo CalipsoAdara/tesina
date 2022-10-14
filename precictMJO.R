@@ -163,6 +163,9 @@ rm(predictibilidad, cor_mod)
 sabNOMJO <- as.Date(sabadosMME[!sabadosMME %in% fechas_act])
 
 
+#Restringo tambien el targetdate del multimodelo para fechas Inactivas
+targetdateMMENOMJO <- targetdateMME[,!sabadosMME %in% fechas_act]
+
 for (model in 1:nmodels) {
   
   # Tomo el modelo a comparar contra la EM del resto de los mod
@@ -183,7 +186,7 @@ for (model in 1:nmodels) {
     
     # Semana y lead en cuestion del MME
     startweek = as.character(seq.Date(sabNOMJO[i]-7,sabNOMJO[i]-1,by=1)) #desde el sabado anterior al viernes
-    leadMME = targetdateMMEMJO[,i]
+    leadMME = targetdateMMENOMJO[,i]
     
     # MODELO RESTANTE ---------------------------------------------
     # Que startdate cae en la semana del MME para el modelo restante

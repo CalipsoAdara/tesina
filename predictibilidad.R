@@ -312,7 +312,7 @@ predictibilidad = apply(predicti , c(1,2,3), mean, na.rm = T)
 saveRDS(predictibilidad, "./MJO/predict_NOMJO.rds")
 
 # G R A F I C O S ------------------------------------
-predicti <- readRDS("./MJO/predict_MJO.rds")
+predicti <- readRDS("./MJO/predic/predictnomjo.rds")
 
 # convierto a data frame para las 4 weeks
 dimnames(predicti) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
@@ -323,9 +323,9 @@ dimnames(predicti) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
 df <- reshape2::melt(predicti)
 colnames(df) <- c("x","y","week","z")
 g<-GraphDiscreteMultiple(Data=df,Breaks = seq(0,1,0.2),Label = "ACC",Paleta = "Greens",Direccion = 1)
-g + ggtitle(paste0("Predictibilidad MJO activos \ntasa (99-14, Oct-Mar)"))
+g + ggtitle(paste0("Predictibilidad MJO inactivos \ntasa (99-14, Oct-Mar)"))
 
-ggsave(filename = "./MJO/predicMJO.png",plot=g,width = 10, height = 4)
+ggsave(filename = "./MJO/predic/predicnoMJO.png",plot=g,width = 10, height = 4)
 for (m in 1:nmodels) {
   
   # Renombro dimensiones 
@@ -352,8 +352,8 @@ for (m in 1:nmodels) {
 # SI ES ACT - TOTAL DONDE SEA POSITIVO ----------> APORTA MJO
 
 # cargo predictibilidad total
-predtotal <- readRDS("./MJO/predict_NOMJO.rds")
-predMJO <- readRDS("./MJO/predict_MJO.rds")
+predtotal <- readRDS("./MJO/predic/predictnomjo.rds")
+predMJO <- readRDS("./MJO/predic/predictmjo.rds")
 
 pred_diff <- predMJO - predtotal
 
@@ -369,7 +369,7 @@ colnames(df) <- c("x","y","week","z")
 g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.2,0.2,0.05),Label = "ACC",Paleta = "RdBu",Direccion = -1)
 g + ggtitle(paste0("Predictibilidad MJO ACT - INACT \ntasa (99-14, Oct-Mar)"))
 
-ggsave(filename = "./MJO/predic_resta_actinact.png",plot=g,width = 10, height = 4)
+ggsave(filename = "./MJO/predic/predic_resta_actinact.png",plot=g,width = 10, height = 4)
 
 
 #------------------------------ ----------------------------------------------------------
