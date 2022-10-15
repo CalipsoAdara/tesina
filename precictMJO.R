@@ -185,7 +185,7 @@ for (model in 1:nmodels) {
   for (i in 1:length(sabNOMJO)) { # Por cada sabado
     
     # Semana y lead en cuestion del MME
-    startweek = as.character(seq.Date(sabNOMJO[i]-7,sabNOMJO[i]-1,by=1)) #desde el sabado anterior al viernes
+    startweek = seq.Date(sabNOMJO[i]-7,sabNOMJO[i]-1,by=1) #desde el sabado anterior al viernes
     leadMME = targetdateMMENOMJO[,i]
     
     # MODELO RESTANTE ---------------------------------------------

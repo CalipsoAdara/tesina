@@ -442,18 +442,17 @@ for (i in 1:length(colnombre)) {
 }
 
 
-EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsam) {
+EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsam,FilePath) {
   #Modelos: lista de los datos de los modelos
   #TgdtMod: LIsta de los targetdate de modelos 
   #StdtMod: Lista de los startdate de los modelos
   #FechEnsam: Vector de fechas donde hacer la predictibilidad. EJ: todos los sabados de mme
   #TgdtEnsam: targetdate del ensamble deseado
+  #FilePath: string. Donde guardar los datos
   
   FechEnsam = as.Date(FechEnsam)
   nmodels = length(Modelos)
 
-  #ARRAY A LLENAR
-  cor_mod <- array(NA, dim = c(66,76,28,nmodels))
   
   for (model in 1:nmodels) {
     
@@ -523,11 +522,24 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
     MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)  # Creado la media del ensamble n-1
     
     # Correlacion entre mod y ens n-1
-    cor_mod[,,,model] <- Predictibilidad(mod_aparte, MME_pro)
+    cor_mod <- Predictibilidad(mod_aparte, MME_pro)
+    saveRDS(cor_mod, paste0(FilePath,"/predic_",models[model]))
+    print(paste("termino la correlacion del modelo",models[model]))
+    
+    # ELimino para hacer espacio
+    rm(cor_mod)
     
   } # End loop models
-  
   # Ahora promedio todas las correlaciones obtenidad de cada modelo (cuarta dimension)
+  # Guarde todas las correlaciones por separado para que sea menos pesado y ahora promedio
+  
+  cor_mod <- array(NA, dim = c(66,76,28,nmodels))
+  for (m in nmodels) {
+    cor_mod[,,,model] <- readRDS(paste0(FilePath,"/predic_",models[m]))
+  }
+  
   predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
+  
   return(predictibilidad)
+
 }

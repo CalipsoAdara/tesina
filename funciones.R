@@ -1272,3 +1272,105 @@ CompletarFaltante <- function(Target, Stdt, ModeloObjetivo,Startweek, ModelNombr
   return(modelo_objetivo)
 }
 #----------------------------------------------------------------------------------------
+EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsam,FilePath) {
+  #Modelos: lista de los datos de los modelos
+  #TgdtMod: LIsta de los targetdate de modelos 
+  #StdtMod: Lista de los startdate de los modelos
+  #FechEnsam: Vector de fechas donde hacer la predictibilidad. EJ: todos los sabados de mme
+  #TgdtEnsam: targetdate del ensamble deseado
+  #FilePath: string. Donde guardar los datos
+  
+  FechEnsam = as.Date(FechEnsam)
+  nmodels = length(Modelos)
+  
+  
+  for (model in 1:nmodels) {
+    
+    # Tomo el modelo a comparar contra la EM del resto de los mod
+    mod_restante_stdate = StdtMod[[model]]
+    mod_restante_tgdate = TgdtMod[[model]]
+    MODELO_restante = Modelos[[model]]
+    
+    mod_ensamble_stdate = StdtMod[-model]
+    mod_ensamble_tgdate = TgdtMod[-model]
+    MODELOS_ensamble = Modelos[-model]
+    
+    # array a completar 
+    MME_nmenos1 <- array(NA, dim = c(66,76,28,(nmodels-1),length(FechEnsam)))
+    mod_aparte <- array(NA, dim = c(66,76,28,length(FechEnsam)))
+    
+    for (i in 1:length(FechEnsam)) { # Por cada fecha
+      
+      # Semana y lead en cuestion del MME
+      startweek = as.character(seq.Date(FechEnsam[i]-7,FechEnsam[i]-1,by=1)) #desde el sabado anterior al viernes
+      leadMME = TgdtEnsam[,i]
+      
+      # MODELO RESTANTE ---------------------------------------------
+      # Que startdate cae en la semana del MME para el modelo restante
+      stdt_restante = mod_restante_stdate %in% startweek
+      # Tomar la inicializacion mas cercana al sabado de pronostico
+      if (sum(stdt_restante)>1) {stdt_restante = last(which(stdt_restante))}
+      
+      # Evaluo el modelo restante en las fechas que coincide con MME
+      target_restante = mod_restante_tgdate[,stdt_restante] %in% leadMME
+      modelo_objetivo_rest = MODELO_restante[,,target_restante,stdt_restante]
+      
+      # Llenar con NA si faltan dias 
+      modelo_objetivo_rest = CompletarFaltante(Target = target_restante, 
+                                               Stdt = stdt_restante, 
+                                               ModeloObjetivo = modelo_objetivo_rest)
+      
+      # MEDIA ENSAMBLE N-1 MODELOS ----------------------------------
+      for (mod in 1:(nmodels-1)) { # por cada modelo
+        # Que startdate cae en la semana del MME para cada modelo
+        stdt = mod_ensamble_stdate[[mod]] %in% startweek
+        
+        # Tomar la inicializacion mas cercana al sabado de pronostico
+        if (sum(stdt)>1) {    # Hay mas de un inicio en la semana
+          stdt = last(which(stdt))}
+        
+        # Quiero saber que lead hace que coincida el targetdate del modelo con el targetdate del MME 
+        leadMODELO = mod_ensamble_tgdate[[mod]]
+        target = leadMODELO[,stdt] %in% leadMME
+        
+        # Evaluo el modelo en esas fechas
+        modelo = MODELOS_ensamble[[mod]]
+        modelo_objetivo = modelo[,,target,stdt]
+        
+        # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
+        modelo_objetivo = CompletarFaltante(target, stdt, modelo_objetivo)
+        
+        
+        # Guardo
+        MME_nmenos1[,,,mod,i] <- modelo_objetivo
+        mod_aparte[,,,i] <- modelo_objetivo_rest
+        
+      } # End loop media ensamble
+      
+    } # End loop sabados  
+    # Promedio sobre los modelos (cuarta dimension)
+    MME_pro = apply(MME_nmenos1 , c(1,2,3,5), mean, na.rm = T)  # Creado la media del ensamble n-1
+    
+    # Correlacion entre mod y ens n-1
+    cor_mod <- Predictibilidad(mod_aparte, MME_pro)
+    saveRDS(cor_mod, paste0(FilePath,"/predic_",models[model]))
+    print(paste("termino la correlacion del modelo",models[model]))
+    
+    # ELimino para hacer espacio
+    rm(cor_mod)
+    
+  } # End loop models
+  # Ahora promedio todas las correlaciones obtenidad de cada modelo (cuarta dimension)
+  # Guarde todas las correlaciones por separado para que sea menos pesado y ahora promedio
+  
+  cor_mod <- array(NA, dim = c(66,76,28,nmodels))
+  for (m in nmodels) {
+    cor_mod[,,,model] <- readRDS(paste0(FilePath,"/predic_",models[m]))
+  }
+  
+  predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
+  
+  return(predictibilidad)
+  
+}
+#----------------------------------------------------------------------------------------
