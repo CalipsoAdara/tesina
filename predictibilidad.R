@@ -367,17 +367,37 @@ df <- reshape2::melt(pred_diff)
 colnames(df) <- c("x","y","week","z")
 
 g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.2,0.2,0.05),Label = "ACC",Paleta = "RdBu",Direccion = -1)
-g + ggtitle(paste0("Predictibilidad MJO ACT - INACT \ntasa (99-14, Oct-Mar)"))
+g <- g + ggtitle(paste0("Predictibilidad MJO ACT - INACT \ntasa (99-14, Oct-Mar)"))
 
 ggsave(filename = "./MJO/predic/predic_resta_actinact.png",plot=g,width = 10, height = 4)
 
 
 #------------------------------ ----------------------------------------------------------
 # Ahora con fechas extremas yaay
+# Lo importante es que las fechas del ensamble (MME) sean lo mas cercanas a las fechas extremas
+
 
 # Cargo datos de fechas extremas
 ext <- read.csv("./ext.csv",stringsAsFactors = F)
 colnombre <- c("TOTAL90","TOTAL10")
+
+# Discrimino fechas no extremas (ni p10 ni p90)
+#Busco las fehcas extremas
+extrema = BuscarFechaExtrema(Ext = ext, Columna = colnombre,Startdate = stdtMME)
+# Remuevo posiciones repetidas y ordeno de menor a mayor
+extrema = sort(unique(extrema))
+
+# Eligo solo las fechas no extremas y hago su predictibilidad, solo una vez
+stdtMME_noext = stdtMME[-extrema]
+tgdtMME_noext = tgdtMME[,-extrema]
+
+predic_noext = EnsamblesPredictiblidad(Modelos=MODELOS,
+                                       TgdtMod=targetdateMODELOS, 
+                                       StdtMod=startdateMODELOS, 
+                                       FechEnsam = stdtMME_noext,
+                                       TgdtEnsam = tgdtMME_noext,
+                                       FilePath = "./ext")
+saveRDS(predic_noext,"./ext/predic_noext.rds")
 
 for (p in colnombre) {
   
@@ -390,24 +410,19 @@ for (p in colnombre) {
   stdtMME_ext = stdtMME[extrema]
   tgdtMME_ext = tgdtMME[,extrema]
   
-  stdtMME_noext = stdtMME[-extrema]
-  tgdtMME_noext = tgdtMME[,-extrema]
   #Predictibilidad
   predic_ext = EnsamblesPredictiblidad(Modelos=MODELOS,
                           TgdtMod=targetdateMODELOS, 
                           StdtMod=startdateMODELOS, 
                           FechEnsam = stdtMME_ext,
-                          TgdtEnsam = tgdtMME_ext)
+                          TgdtEnsam = tgdtMME_ext,
+                          FilePath = "./ext")
   
-  predic_noext = EnsamblesPredictiblidad(Modelos=MODELOS,
-                                       TgdtMod=targetdateMODELOS, 
-                                       StdtMod=startdateMODELOS, 
-                                       FechEnsam = stdtMME_noext,
-                                       TgdtEnsam = tgdtMME_noext)
+  predic_noext = readRDS("./ext/predic_noext.rds")
+  
   # Guardo
   indice = substr(p,6,7)
   saveRDS(predic_ext, paste0("./ext/predict_ext",indice,".rds"))
-  saveRDS(predic_noext, paste0("./ext/predict_noext",indice,".rds"))
   
 }
 # G R A F I C O S ------------------------------------
@@ -421,7 +436,7 @@ for (i in 1:length(colnombre)) {
   p = substr(indice,6,7)
   # Cargo los datos para la resta
   pred_ext <- readRDS(paste0("./ext/predict_ext",p,".rds"))
-  pred_noext <- readRDS(paste0("./ext/predict_noext",p,".rds"))
+  pred_noext <- readRDS("./ext/predict_noext.rds")
   
   # Resta
   resta <- pred_ext - pred_noext
@@ -435,7 +450,7 @@ for (i in 1:length(colnombre)) {
   df <- reshape2::melt(resta)
   colnames(df) <- c("x","y","week","z")
   g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.2,0.2,0.05),Label = "ACC",Paleta = "RdBu",Direccion = -1)
-  g + ggtitle(paste0("Predictibilidad \n P",p," EXT-NO EXT \ntasa (99-14, Oct-Mar)"))
+  g<-g + ggtitle(paste0("Predictibilidad \n P",p," EXT-NO EXT \ntasa (99-14, Oct-Mar)"))
   
   ggsave(filename = paste0("./ext/predic_resta_p",p,".png"),plot=g,width = 10, height = 4)
   

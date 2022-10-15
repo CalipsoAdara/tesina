@@ -1282,7 +1282,7 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
   
   FechEnsam = as.Date(FechEnsam)
   nmodels = length(Modelos)
-  
+  models = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL")
   
   for (model in 1:nmodels) {
     
@@ -1294,6 +1294,7 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
     mod_ensamble_stdate = StdtMod[-model]
     mod_ensamble_tgdate = TgdtMod[-model]
     MODELOS_ensamble = Modelos[-model]
+    nombres_ensamble = models[-model]
     
     # array a completar 
     MME_nmenos1 <- array(NA, dim = c(66,76,28,(nmodels-1),length(FechEnsam)))
@@ -1318,7 +1319,9 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
       # Llenar con NA si faltan dias 
       modelo_objetivo_rest = CompletarFaltante(Target = target_restante, 
                                                Stdt = stdt_restante, 
-                                               ModeloObjetivo = modelo_objetivo_rest)
+                                               ModeloObjetivo = modelo_objetivo_rest,
+                                               Startweek = startweek,
+                                               ModelNombre = models[model])
       
       # MEDIA ENSAMBLE N-1 MODELOS ----------------------------------
       for (mod in 1:(nmodels-1)) { # por cada modelo
@@ -1338,7 +1341,11 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
         modelo_objetivo = modelo[,,target,stdt]
         
         # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
-        modelo_objetivo = CompletarFaltante(target, stdt, modelo_objetivo)
+        modelo_objetivo = CompletarFaltante(Target= target, 
+                                            Stdt = stdt,
+                                            ModeloObjetivo = modelo_objetivo,
+                                            Startweek = startweek,
+                                            ModelNombre = nombres_ensamble[mod])
         
         
         # Guardo
