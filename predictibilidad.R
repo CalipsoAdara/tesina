@@ -312,7 +312,7 @@ predictibilidad = apply(predicti , c(1,2,3), mean, na.rm = T)
 saveRDS(predictibilidad, "./MJO/predict_NOMJO.rds")
 
 # G R A F I C O S ------------------------------------
-predicti <- readRDS("./MJO/predic/predictnomjo.rds")
+predicti <- readRDS("./MJO/predict_MJO.rds")
 
 # convierto a data frame para las 4 weeks
 dimnames(predicti) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
@@ -323,9 +323,9 @@ dimnames(predicti) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
 df <- reshape2::melt(predicti)
 colnames(df) <- c("x","y","week","z")
 g<-GraphDiscreteMultiple(Data=df,Breaks = seq(0,1,0.2),Label = "ACC",Paleta = "Greens",Direccion = 1)
-g + ggtitle(paste0("Predictibilidad MJO inactivos \ntasa (99-14, Oct-Mar)"))
+g<-g + ggtitle(paste0("Predictibilidad MJO activos \ntasa (99-14, Oct-Mar)"))
 
-ggsave(filename = "./MJO/predic/predicnoMJO.png",plot=g,width = 10, height = 4)
+ggsave(filename = "./MJO/predic/predicMJO.png",plot=g,width = 10, height = 4)
 for (m in 1:nmodels) {
   
   # Renombro dimensiones 
@@ -378,7 +378,8 @@ ggsave(filename = "./MJO/predic/predic_resta_actinact.png",plot=g,width = 10, he
 
 
 # Cargo datos de fechas extremas
-ext <- read.csv("./ext.csv",stringsAsFactors = F)
+#ext <- read.csv("./ext.csv",stringsAsFactors = F)
+ext <- read.csv("./extMME.csv",stringsAsFactors = F)
 colnombre <- c("TOTAL90","TOTAL10")
 
 # Discrimino fechas no extremas (ni p10 ni p90)
@@ -396,8 +397,9 @@ predic_noext = EnsamblesPredictiblidad(Modelos=MODELOS,
                                        StdtMod=startdateMODELOS, 
                                        FechEnsam = stdtMME_noext,
                                        TgdtEnsam = tgdtMME_noext,
-                                       FilePath = "./ext")
-saveRDS(predic_noext,"./ext/predic_noext.rds")
+                                       FilePath = "./ext/mme")
+#saveRDS(predic_noext,"./ext/predic_noext.rds")
+saveRDS(predic_noext,"./ext/mme/predic_noextMME.rds")
 
 for (p in colnombre) {
   
@@ -416,13 +418,13 @@ for (p in colnombre) {
                           StdtMod=startdateMODELOS, 
                           FechEnsam = stdtMME_ext,
                           TgdtEnsam = tgdtMME_ext,
-                          FilePath = "./ext")
+                          FilePath = "./ext/mme")
   
-  predic_noext = readRDS("./ext/predic_noext.rds")
+  #predic_noext = readRDS("./ext/predic_noext.rds")
   
   # Guardo
   indice = substr(p,6,7)
-  saveRDS(predic_ext, paste0("./ext/predict_ext",indice,".rds"))
+  saveRDS(predic_ext, paste0("./ext/mme/predict_ext",indice,".rds"))
   
 }
 # G R A F I C O S ------------------------------------
@@ -436,7 +438,7 @@ for (i in 1:length(colnombre)) {
   p = substr(indice,6,7)
   # Cargo los datos para la resta
   pred_ext <- readRDS(paste0("./ext/predict_ext",p,".rds"))
-  pred_noext <- readRDS("./ext/predict_noext.rds")
+  pred_noext <- readRDS("./ext/predic_noext.rds")
   
   # Resta
   resta <- pred_ext - pred_noext
@@ -557,4 +559,93 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
   
   return(predictibilidad)
 
+}
+
+
+
+# ----------------------------------------------------------------------------
+# Tabla con las fechas sin modelo o que se llena de vacio
+models = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL")
+
+Modelos = MODELOS
+TgdtMod = targetdateMODELOS
+FechEnsam = stdtMME
+TgdtEnsam= tgdtMME
+FilePath = "./predic"
+StdtMod = startdateMODELOS
+
+fecha_sin = c()
+fecha_fal = c()
+
+for (model in 1:nmodels) {
+  FechEnsam = as.Date(FechEnsam)
+  
+  # Tomo el modelo a comparar contra la EM del resto de los mod
+  mod_restante_stdate = StdtMod[[model]]
+  mod_restante_tgdate = TgdtMod[[model]]
+  MODELO_restante = Modelos[[model]]
+  
+  mod_ensamble_stdate = StdtMod[-model]
+  mod_ensamble_tgdate = TgdtMod[-model]
+  MODELOS_ensamble = Modelos[-model]
+  nombres_ensamble = models[-model]
+  for (i in 1:length(FechEnsam)) {
+    
+    # Semana y lead en cuestion del MME
+    startweek = as.character(seq.Date(FechEnsam[i]-7,FechEnsam[i]-1,by=1)) #desde el sabado anterior al viernes
+    leadMME = TgdtEnsam[,i]
+    
+    # MODELO RESTANTE ---------------------------------------------
+    # Que startdate cae en la semana del MME para el modelo restante
+    stdt_restante = mod_restante_stdate %in% startweek
+    # Tomar la inicializacion mas cercana al sabado de pronostico
+    if (sum(stdt_restante)>1) {stdt_restante = last(which(stdt_restante))}
+    
+    # Evaluo el modelo restante en las fechas que coincide con MME
+    target_restante = mod_restante_tgdate[,stdt_restante] %in% leadMME
+    modelo_objetivo_rest = MODELO_restante[,,target_restante,stdt_restante]
+    
+    # Llenar con NA si faltan dias 
+    fechas = CompletarFaltanteStr(Target = target_restante, 
+                                             Stdt = stdt_restante, 
+                                             ModeloObjetivo = modelo_objetivo_rest,
+                                             Startweek = startweek,
+                                             ModelNombre = models[model])
+    fecha_sin=append(fecha_sin,fechas[[1]])
+    fecha_fal=append(fecha_fal,fechas[[2]])
+    
+    # MEDIA ENSAMBLE N-1 MODELOS ----------------------------------
+    for (mod in 1:(nmodels-1)) { # por cada modelo
+      # Que startdate cae en la semana del MME para cada modelo
+      stdt = mod_ensamble_stdate[[mod]] %in% startweek
+      
+      # Tomar la inicializacion mas cercana al sabado de pronostico
+      if (sum(stdt)>1) {    # Hay mas de un inicio en la semana
+        stdt = last(which(stdt))}
+      
+      # Quiero saber que lead hace que coincida el targetdate del modelo con el targetdate del MME 
+      leadMODELO = mod_ensamble_tgdate[[mod]]
+      target = leadMODELO[,stdt] %in% leadMME
+      
+      # Evaluo el modelo en esas fechas
+      modelo = MODELOS_ensamble[[mod]]
+      modelo_objetivo = modelo[,,target,stdt]
+      
+      # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
+      fechas = CompletarFaltanteStr(Target = target_restante, 
+                                    Stdt = stdt_restante, 
+                                    ModeloObjetivo = modelo_objetivo_rest,
+                                    Startweek = startweek,
+                                    ModelNombre = models[model])
+      fecha_sin=append(fecha_sin,fechas[[1]])
+      fecha_fal=append(fecha_fal,fechas[[2]])
+      modelo_objetivo = CompletarFaltante(Target= target, 
+                                          Stdt = stdt,
+                                          ModeloObjetivo = modelo_objetivo,
+                                          Startweek = startweek,
+                                          ModelNombre = nombres_ensamble[mod])
+      
+      }
+  }
+  
 }

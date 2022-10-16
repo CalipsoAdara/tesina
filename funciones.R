@@ -778,8 +778,8 @@ FechasPercentiles <- function(DF,Variable) {
   p90 = Variable > percentil[2]
   
   # Evalua el dataframe en las filas TRUE y tomo la primer columna (fechas)
-  fechas10 <- DF[p10,][1,]
-  fechas90 <- DF[p90,][1,]
+  fechas10 <- DF[p10,][,1]
+  fechas90 <- DF[p90,][,1]
   
   return(list(fechas10,fechas90))
 }
@@ -1270,6 +1270,38 @@ CompletarFaltante <- function(Target, Stdt, ModeloObjetivo,Startweek, ModelNombr
     modelo_objetivo = ModeloObjetivo
   }
   return(modelo_objetivo)
+}
+#----------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------
+CompletarFaltanteStr <- function(Target, Stdt, ModeloObjetivo,Startweek, ModelNombre) {
+  ## Target: Vector logico
+  ## Stdt: Vector logico
+  ## ModeloObjetico: array de 3 dimensiones que deberia completarse con 66,76 y 28 lead
+  ## Startweek: Vector dates. la semana que se analiza.
+  ## ModelNombre
+  f_sin=c()
+  f_fal=c()
+  
+  # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
+  if (sum(Target)<28) {
+    
+    # PRUEBA: QUE PASA CUANDO NO HAY MODELO ESA SEMANA
+    if (sum(Stdt)==0){
+      print(paste("La semana ",Startweek[1]," no tiene el modelo",ModelNombre))
+      f_sin = append(f_sin,Startweek[1])
+  
+    }else{
+      print(paste("La semana ",Startweek[1]," le faltan dias del modelo",ModelNombre))
+      f_fal = append(f_fal,Startweek[1])
+    
+    }
+    return(list(f_sin,f_fal))
+  }
+  
+  # Si el modelo esta completo no hacer nada
+  if (sum(Target)==28) {
+  
+  }
 }
 #----------------------------------------------------------------------------------------
 EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsam,FilePath) {
