@@ -119,11 +119,11 @@ for (i in 1:nmodels) {
 }
 
 # Poligonos. Lon de menor a mayor, el primer punto se repite para cerrar el poligono
-SP <- data.frame(x_coords = c(291,288,291,298,291),
-                 y_coords = c(-30,-40,-53,-40,-30))
+SP <- data.frame(x_coords = c(290,293,298,292,290),
+                 y_coords = c(-43,-53,-40,-30,-43))
 
-SACZ <- data.frame(x_coords = c(305,305,310,321,305),
-                   y_coords = c(-10,-25,-30,-10,-10))
+SACZ <- data.frame(x_coords = c(305,305,317,323,305),
+                   y_coords = c(-10,-20,-27,-10,-10))
 
 
 # Listas de percentiles a llenar
@@ -324,6 +324,7 @@ theme(axis.text=element_text(size=12))+
                                         colour = "grey86")) +
 
   theme(plot.title = element_text(hjust = 0.5))
+
 
 #---------------------------------------------------------------------------------------------
 #-----------------------------------------B O X P L O T S------------------------------------- 
