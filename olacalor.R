@@ -23,6 +23,7 @@ library(metR)
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
 svpath = "/home/lucia.castro/SubX_processed_Rdata"
+setwd(svpath)
 
 # Modelos
 groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')
@@ -105,6 +106,10 @@ for(we in 1:length(olaw)) { # por cada semana del evento
   } # End loop modelo
 } # End loop semana
 
+# Guardado
+
+saveRDS(df,"./ola/dfola.rds")
+
 # ------------------------------------------------------------------------------
 # O B S E R V A C I O N E S
 
@@ -122,7 +127,7 @@ for(w in olaw) {
                       Paleta = "RdBu", Direccion = -1,
                       Titulo = paste0("T2M ANOM CPC \n",sem[1],"-",sem[length(sem)]))
   caso <- caso +1
-  ggsave(paste0(svpath,"/obsola_",caso,".png"),go)
+  ggsave(paste0(svpath,"./ola/obsola_",caso,".png"),go)
   
 }
 
@@ -132,6 +137,9 @@ for(w in olaw) {
 
 dt <- as.data.table(df)
 fechaola <- c("13/12-19/12", "20/12-26/12","27/12-31/12")
+
+# Para que plotee los leads de forma correcta los convierto en factors
+dt$lead =  factor(dt$lead, levels=c('1-7','8-14','15-21','CPC'))
 
 for (w in 1:3) {
   
