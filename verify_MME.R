@@ -171,7 +171,7 @@ dt.var <- reshape2::melt(var, value.name = "z")
 g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.25),Label = "RMSE",Paleta = "YlOrRd", Direccion = "1")
 g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "ME",Paleta = "RdBu",Direccion = "-1")
 g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlGn",Direccion = "1")
-g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
+g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.002,0.002,0.0005), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
 
 
 fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX MME tasa (99-14, Oct-Mar)",gp=gpar(fontsize=13,font=3)))

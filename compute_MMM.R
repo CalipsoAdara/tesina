@@ -318,7 +318,7 @@ dimnames(predic) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
 df <- reshape2::melt(predic)
 colnames(df) <- c("x","y","week","z")
 g<-GraphDiscreteMultiple(Data=df,Breaks = seq(0,1,0.2),Label = "ACC",Paleta = "Greens",Direccion = 1)
-g + ggtitle(paste0("Predictibilidad  \ntasa (99-14, Oct-Mar)"))
+g <- g + ggtitle(paste0("Predictibilidad  \ntasa (99-14, Oct-Mar)"))
 
 ggsave(filename = "./predic.png",plot=g,width = 10, height = 4)
 
