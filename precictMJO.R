@@ -261,3 +261,72 @@ predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
 # Guardo
 saveRDS(predictibilidad, "./MJO/predic/predictnomjo.rds")
 
+
+#------------------------------------------------------------------------------------------------
+# Predictibilidad segun fase (los bins bah)
+
+# MJO
+# Cargo los datos de eventos
+df_rmm <- readRDS("./MJO/df_rmm.rds")
+df_rmm <- data.table(df_rmm)
+
+# Vector Bin
+bin = levels(df_rmm$Bin)
+
+for (b in bin) {
+  
+  # Fechas de ese bin
+  fechas_bin <- df_rmm[Bin == b,.(DATE)]
+  fechas_bin <- as.character(fechas_bin$DATE)
+  
+  # Busco que sabados coinciden con las fechas del bin
+  sabBin <- as.Date(sabadosMME[sabadosMME %in% fechas_bin])
+  
+  # Restringo tambien el targetdate del multimodelo para fechas del bin
+  targetdateMMEBIN<- targetdateMME[,sabadosMME %in% fechas_bin]
+  
+  predic_bin= EnsamblesPredictiblidad(Modelos=MODELOS,
+                          TgdtMod=targetdateMODELOS, 
+                          StdtMod=startdateMODELOS, 
+                          FechEnsam = sabBin,
+                          TgdtEnsam = targetdateMMEBIN,
+                          FilePath = paste0("./MJO/predic/bin",b))
+  
+  # Guardo
+  saveRDS(predic_bin, paste0("./MJO/predic/predic_bin",b,".rds"))
+  
+  
+}
+
+
+# Resta de predictibilidad Inactiva vs Predictibilidad en una fase particular
+
+# SI ES TOTAL - ACT DE MJO DONDE SEA NEGATIVO ------> APORTA MJO
+# SI ES ACT - TOTAL DONDE SEA POSITIVO ----------> APORTA MJO
+
+# cargo predictibilidad no activa
+predtotal <- readRDS("./MJO/predic/predictnomjo.rds")
+
+for (b in bin) {
+  # Cargo datos de predictibilidad del bin
+  predbin <- readRDS(paste0("./MJO/predic/predic_bin",b,".rds"))
+  
+  # Resto
+  pred_diff <- predbin - predtotal
+  
+  # convierto a data frame para las 4 weeks
+  dimnames(pred_diff) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
+                              "week" = c(rep("Week 1",7),
+                                         rep("Week 2",7),
+                                         rep("Week 3",7),
+                                         rep("Week 4",7)))
+  df <- reshape2::melt(pred_diff)
+  colnames(df) <- c("x","y","week","z")
+  
+  # grafico 
+  fase = paste("Fases",substr(b,5,5),"y",substr(b,6,6))
+  g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.4,0.4,0.1),Label = "ACC",Paleta = "RdBu",Direccion = -1)
+  g <- g + ggtitle(paste0("Predictibilidad MJO ACT - INACT \n",fase," tasa (99-14, Oct-Mar)"))
+  
+  ggsave(filename = paste0("./MJO/predic/predic_diff",b,".png"),plot=g,width = 10, height = 4)
+}
