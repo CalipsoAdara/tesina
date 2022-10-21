@@ -119,8 +119,8 @@ for (i in 1:nmodels) {
 }
 
 # Poligonos. Lon de menor a mayor, el primer punto se repite para cerrar el poligono
-SP <- data.frame(x_coords = c(290,287,290,295,298,290),
-                 y_coords = c(-28,-35,-45,-45,-40,-28))
+SP <- data.frame(x_coords = c(293,289,290,293,298,293),
+                 y_coords = c(-28,-35,-50,-50,-40,-28))
 
 SACZ <- data.frame(x_coords = c(305,305,312,319,323,305),
                    y_coords = c(-10,-20,-24,-25,-10,-10))
@@ -147,6 +147,7 @@ for (mod in 1:nmodels) {
   df <- rbind(df.mod, df.obs )
   df$fuente = c(rep("Modelo",nrow(df.mod)),
                 rep("CPC",nrow(df.obs)))
+  rm(df.obs,df.mod,modelo,obs)
   
   # Restringir el data frame al area del poligono (primeras 2 col son lat y lon)
   puntossacz=pointsInPolygon(df[,1:2],SACZ) 
@@ -294,11 +295,11 @@ Reduce(intersect, p90)
 
 
 # Creo archivo csv 
-write.csv(extremo, "./SubX_processed_Rdata/ext.csv")
+write.csv(extremo, "./SubX_processed_Rdata/ext_newpoli.csv")
 
 # Grafico de la ubicacion de los poligonos en un dia particular
-SP <- data.frame(x_coords = c(290,287,290,295,298,290),
-                 y_coords = c(-28,-35,-45,-45,-40,-28))
+SP <- data.frame(x_coords = c(293,289,290,293,298,293),
+                 y_coords = c(-28,-35,-50,-50,-40,-28))
 
 SACZ <- data.frame(x_coords = c(305,305,312,319,323,305),
                    y_coords = c(-10,-20,-24,-25,-10,-10))
@@ -327,8 +328,8 @@ theme(axis.text=element_text(size=12))+
   coord_cartesian(xlim = c(270,325), ylim = c(-60,15)) +
 
     # agrego nombres de poligonos
-    annotate("text", x = 295, y = -32, label = "SSA",
-             col = "slateblue", size = 5, angle = -50) +
+    annotate("text", x = 297, y = -32, label = "SEP",
+             col = "slateblue", size = 5)  +     #angle=-60 si queres
   annotate("text", x = 312, y = -9, label = "SACZ",
             col = "seagreen", size = 5)
 g
