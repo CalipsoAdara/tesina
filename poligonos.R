@@ -119,11 +119,13 @@ for (i in 1:nmodels) {
 }
 
 # Poligonos. Lon de menor a mayor, el primer punto se repite para cerrar el poligono
-SP <- data.frame(x_coords = c(290,293,298,292,290),
-                 y_coords = c(-43,-53,-40,-30,-43))
+SP <- data.frame(x_coords = c(290,287,290,295,298,290),
+                 y_coords = c(-28,-35,-45,-45,-40,-28))
 
-SACZ <- data.frame(x_coords = c(305,305,317,323,305),
-                   y_coords = c(-10,-20,-27,-10,-10))
+SACZ <- data.frame(x_coords = c(305,305,312,319,323,305),
+                   y_coords = c(-10,-20,-24,-25,-10,-10))
+
+
 
 
 # Listas de percentiles a llenar
@@ -220,6 +222,8 @@ for (mod in 1:nmodels) {
  
 }
 
+saveRDS(lista.modelos.sacz,"./SubX_processed_Rdata/poligonos/poli.sacz.rds")
+saveRDS(lista.modelos.sp,"./SubX_processed_Rdata/poligonos/poli.sp.rds")
 
 
 
@@ -293,28 +297,26 @@ Reduce(intersect, p90)
 write.csv(extremo, "./SubX_processed_Rdata/ext.csv")
 
 # Grafico de la ubicacion de los poligonos en un dia particular
-dia = ggDataFrame(ar.anom[,,8])
-mapa<-map_data("world2")
-dia$z=oob_squish(dia$z,range = c(-6,6))
-ggplot() +
-  geom_contour_fill(data=dia,aes(x, y, z = z),breaks = c(-6,-4,-2,0,2,4,6)) +
+SP <- data.frame(x_coords = c(290,287,290,295,298,290),
+                 y_coords = c(-28,-35,-45,-45,-40,-28))
 
+SACZ <- data.frame(x_coords = c(305,305,312,319,323,305),
+                   y_coords = c(-10,-20,-24,-25,-10,-10))
+
+
+
+mapa<-map_data("world2")
+g=ggplot() +
   scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
   scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
-  scale_fill_distiller(name="C",palette="RdBu",direction= -1,
-                       labels = c(-6,-4,-2,0,2,4,6),
 
-                       breaks = c(-6,-4,-2,0,2,4,6),
-                       limits = c(-6, 6),
-                       guide = guide_colorstrip()) +
-
- # ggtitle(Titulo)  +
   geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
-geom_polygon(data= SP, aes(x=x_coords, y=y_coords),color= 'slateblue',fill= NA,size=0.8)+
-  geom_polygon(data= SACZ, aes(x=x_coords, y=y_coords),color= 'seagreen',fill= NA,size=0.8) +
+  geom_polygon(data= SP, aes(x=x_coords, y=y_coords),color= 'slateblue',fill= NA,size=1)+
+  geom_polygon(data= SACZ, aes(x=x_coords, y=y_coords),color= 'seagreen',fill= NA,size=1) +
+
 theme(axis.text=element_text(size=12))+
   theme(strip.text.x = element_text(size = 12, colour = "black"))+
-
+  
   theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
   theme(panel.background = element_rect(fill = "white",colour = "grey70",
                                         size = 2, linetype = "solid"),
@@ -322,8 +324,16 @@ theme(axis.text=element_text(size=12))+
                                         colour = "grey86"),
         panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                         colour = "grey86")) +
+  coord_cartesian(xlim = c(270,325), ylim = c(-60,15)) +
 
-  theme(plot.title = element_text(hjust = 0.5))
+    # agrego nombres de poligonos
+    annotate("text", x = 295, y = -32, label = "SSA",
+             col = "slateblue", size = 5, angle = -50) +
+  annotate("text", x = 312, y = -9, label = "SACZ",
+            col = "seagreen", size = 5)
+g
+# guardo
+ggsave(plot=g,filename = "./SubX_processed_Rdata/poligonos/poli.png",width = 7, height = 9)
 
 
 #---------------------------------------------------------------------------------------------
