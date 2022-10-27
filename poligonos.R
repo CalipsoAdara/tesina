@@ -101,7 +101,7 @@ GraphLineMultiple <- function(Data, Varx, Vary , Region) {
 
 # Cargo datos obs y modelo
 grupos = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL","MME")
-models = c('FIMr1p1','GEM','GEFS','GEOS_V2p1','CCSM4','NESM',"SAT")
+models = c('FIMr1p1','GEM','GEFS','GEOS_V2p1','CCSM4','NESM',"")
 nmodels = length(models)
 
 # Lista con los datos a llenar
@@ -275,6 +275,11 @@ med_obs_sacz = DTPromEspacPesado(obs_sacz, "value", "semana")
 med_obs_sp = DTPromEspacPesado(obs_sp, "value", "semana")
 med_obs = DTPromEspacPesado(df.anom, "value", "semana")
 
+# guardo
+saveRDS(med_obs_sacz,"./SubX_processed_Rdata/poligonos/obs_sacz.rds")
+saveRDS(med_obs_sp,"./SubX_processed_Rdata/poligonos/obs_sp.rds")
+saveRDS(med_obs,"./SubX_processed_Rdata/poligonos/obs.rds")
+
 # Encontrar semanas debajo del p10 y por encima del p90
 fecha_sacz = FechasPercentiles(med_obs_sacz,med_obs_sacz$media)
 fecha_sp = FechasPercentiles(med_obs_sp,med_obs_sp$media)
@@ -339,14 +344,24 @@ ggsave(plot=g,filename = "./SubX_processed_Rdata/poligonos/poli.png",width = 7, 
 
 #---------------------------------------------------------------------------------------------
 #-----------------------------------------B O X P L O T S------------------------------------- 
+
+#modelos
+lista.modelos.sacz <- readRDS("./SubX_processed_Rdata/poligonos/poli.sacz.rds")
+lista.modelos.sp <- readRDS("./SubX_processed_Rdata/poligonos/poli.sp.rds")
+#reanalisis
+med_obs_sacz <- readRDS("./SubX_processed_Rdata/poligonos/obs_sacz.rds")
+med_obs_sp <- readRDS("./SubX_processed_Rdata/poligonos/obs_sp.rds")
+
+
 # Armar datos para boxplots
 # Junto todos los modelos en mismo df
+grupos = c("ESRL-FIMr1p1","ECCC-GEM","EMC-GEFS",
+           "GMAO-GEOS_V2p1","RSMAS-CCSM4","NRL-NESM","MME")
 names(lista.modelos.sacz) <- grupos
 names(lista.modelos.sp) <- grupos
 
 dt.modelos.sacz = bind_rows(lista.modelos.sacz, .id = "modelo")
 dt.modelos.sp = bind_rows(lista.modelos.sp, .id = "modelo")
-
 
 
 
@@ -368,9 +383,9 @@ g1<-GraphBoxplotMultiple2(Data = dt.modelos.sacz, Var = "media", Grupo = "modelo
 
 g2<-GraphBoxplotMultiple2(Data = dt.modelos.sp, Var = "media", Grupo = "modelo",
                          Week = "week", DataObs = med_obs_sp, VarObs = "media",
-                         Titulo = "PATAGONIA")
+                         Titulo = "SEPG")
 
-fig2 <- grid.arrange(g1,g2, ncol = 2,top = textGrob("SubX tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+fig2 <- grid.arrange(g1,g2, ncol = 2,top = textGrob("SubX tasa (99-14, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
 ggsave(filename="./SubX_processed_Rdata/boxplot2.png",plot=fig2,width = 17, height = 11)
 
 
@@ -380,7 +395,7 @@ v1 <- GraphBoxplotViolin(Data = dt.modelos.sacz, Var = "media", Grupo = "modelo"
 
 v2 <- GraphBoxplotViolin(Data = dt.modelos.sp, Var = "media", Grupo = "modelo",
                           Week = "week", DataObs = med_obs_sp, VarObs = "media",
-                          Titulo = "PATAGONIA")
+                          Titulo = "SEPG")
                          
-fig3 <- grid.arrange(v1,v2, ncol = 2,top = textGrob("SubX tasa (99-15, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
+fig3 <- grid.arrange(v1,v2, ncol = 2,top = textGrob("SubX tasa (99-14, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
 ggsave(filename="./SubX_processed_Rdata/violin.png",plot=fig3,width = 17, height = 11)

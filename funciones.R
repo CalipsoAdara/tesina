@@ -615,10 +615,17 @@ GraphBoxplotViolin <- function(Data,Var,Grupo,Week, DataObs, VarObs, Titulo){
                      each = nrow(DataObs))
   DataObs2$modelo <- rep("CPC",nrow(DataObs2))
   setnames(DataObs2, "semana", "start")
+  DataObs2 <- DataObs2[,c("modelo","start","week","media")] # ordena las columnas igual que en Data
   
   # Junto la data y dataobs en un mismo data frame 
   Data$fuente = NULL
-  Data = rbind(Data,DataObs2)
+  Dat = rbind(DataObs2,Data)
+  
+  # Hago factor a los nombres para que queden en el orden que quiero
+  grupos = c("CPC","ESRL-FIMr1p1","ECCC-GEM","EMC-GEFS",
+             "GMAO-GEOS_V2p1","RSMAS-CCSM4","NRL-NESM","MME")
+  Dat$modelo <- factor(Dat$modelo, levels=grupos)
+  
   
 # Funcion para generar un boxplot dentro del violin
   data_summary <- function(x) {
@@ -628,7 +635,7 @@ GraphBoxplotViolin <- function(Data,Var,Grupo,Week, DataObs, VarObs, Titulo){
     return(c(y=m,ymin=ymin,ymax=ymax))
   }
 
-g <- ggplot(data = Data, aes(x=modelo,y= media, color = modelo)) +
+g <- ggplot(data = Dat, aes(x=modelo,y= media, color = modelo)) +
   # fijar boxwidth al maximo ancho (1) en todos los violines
     geom_violin(scale = "width") +
      stat_summary(fun.data=data_summary) + 
