@@ -13,6 +13,7 @@ rm(list=ls())
 # cargar paquetes
 library(ggplot2)
 library(metR)
+library(data.table)
 
 # ----- EN PIKACHU-------
 # source("/vegeta/datos/SubX/mjo.lucia.cas/funciones.R")
@@ -135,16 +136,26 @@ for(w in olaw) {
 # G R A F I C O S ---------------------------------------------------------
 # uno por cada semana
 
+df <- readRDS("./ola/dfola.rds")
+
 dt <- as.data.table(df)
-fechaola <- c("13/12-19/12", "20/12-26/12","27/12-31/12")
+fechaola <- c("13 a 19 de Dic", "20 a 26 de Dic","27 a 31 de Dic")
+
+library(stringr)
+
+rep_str = c('GMAO'='GMAO-GEOS_V2p1','RSMAS'='RSMAS-CCSM4','ESRL'='ESRL-FIMr1p1',
+            'ECCC'='ECCC-GEM','NRL'='NRL-NESM','EMC'='EMC-GEFS','MME'='MME')
+dt$model <- str_replace_all(dt$model, rep_str)
 
 # Para que plotee los leads de forma correcta los convierto en factors
 dt$lead =  factor(dt$lead, levels=c('1-7','8-14','15-21','CPC'))
+dt$model =  factor(dt$model, levels=c('GMAO-GEOS_V2p1','RSMAS-CCSM4','ESRL-FIMr1p1',
+                                      'ECCC-GEM','NRL-NESM','EMC-GEFS','MME'))
 
 for (w in 1:3) {
   
   
-  titulo = paste("T2M ANOM OLA DE CALOR\n",fechaola[w])
+  titulo = paste("T2MA OLA DE CALOR\n",fechaola[w])
   fig = GraphGrupos(Data = dt[week == weeklabel[w]], Paleta = "RdBu", Direccion = -1,
               Breaks = seq(-3,3,1), Label = "°C", Titulo = titulo)
   ggsave(filename=paste0("./ola/temp_",weeklabel[w],".png"),
