@@ -5,7 +5,7 @@ Predictability study for temperature and precipitation based of SubX models from
 Compute_anomalies.R: Calculates anomalies (run in first) having daily values and climatology 
 
 Compute_ensmean.R: Calculates ensamble mean for each model except NRL
-Compute_ensmean.R: Calculates ensamble mean for NRL 
+Compute_ensmean_NRL.R: Calculates ensamble mean for NRL 
 
 ensamblemean_MODEL.R: Rearrange data for further verification
 
@@ -26,3 +26,5 @@ funciones.R: Functions
 poligonos.R: Data analysis for restricted region 
 
 ext_mod.R: Same as "verify_model.R" only in specific extreme weeks and regions. Run after poligonos.R
+MJO_obs.R: Defines and searches for an active MJO event.
+MJO_mod.R: Evaluates metrics for MJO active and inactive events. Run after MJO_obs.R
