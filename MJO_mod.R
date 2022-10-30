@@ -219,9 +219,11 @@ for (g in 1:length(groups)) {
 #---------------------------------------------------------------------------------------------------
 
 # PRUEBA DE FACET GRID 
-
+# Si resto activo - inactivo
+# donde rmse sea positivo siginifica que fue mayor en activo ----> MAL
+# donde acc sea positivo significa que fue mayor en activo -----> BIEN
 # leer datos pasar la info a un dataframe
-
+Bins = levels(df_eventos$Bin)
 
 # DATA FRAME a unir todo: modelos, bins, week, metric
 df <- data.frame()
@@ -238,24 +240,39 @@ for (m in groups){
 df = rename(df, "metric" ="L1")
 dt<-as.data.table(df)
 
+# Uso factors para cambiar el orden de los models
+library(stringr)
+
+rep_str = c('GMAO'='GMAO-GEOS_V2p1','RSMAS'='RSMAS-CCSM4','ESRL'='ESRL-FIMr1p1',
+            'ECCC'='ECCC-GEM','NRL'='NRL-NESM','EMC'='EMC-GEFS','MME'='MME')
+met_str = c('rmse'='RMSE','acc'='ACC')
+dt$mod <- str_replace_all(dt$mod, rep_str)
+dt$metric <- str_replace_all(dt$metric, met_str)
+
+# Para que plotee los leads de forma correcta los convierto en factors
+dt$mod =  factor(dt$mod, levels=c('GMAO-GEOS_V2p1','RSMAS-CCSM4','ESRL-FIMr1p1',
+                                      'ECCC-GEM','NRL-NESM','EMC-GEFS','MME'))
+
+
+
 # Graficado y guardado
 
 for (w in c("Week 1", "Week 2", "Week 3", "Week 4")) { #por cada semana
-  for (mt in unique(df$metric)) { # para rmse y acc
+  for (mt in unique(dt$metric)) { # para rmse y acc
     
     # Restrinjo y grafico
     data = dt[week == w & metric == mt]
-    titulo = paste("MJO eventos act-inact \n ",mt,w)
+    titulo = paste("MJO ACT-INACT \n ",mt,w)
     
     # si haces el rmse tenes que poner direccion 1
     # si haces acc tenes que poner direccion -1
-    if (mt=="rmse") {direccion = 1
+    if (mt=="RMSE") {direccion = 1
     } else {direccion = -1}
     
     fig<-GraphMJOCond(Data=data, Breaks = seq(-0.5,0.5,0.10), 
                  Paleta = "RdBu", Direccion = direccion, Titulo = titulo)
     sem = substr(w,6,6)
-    ggsave(filename=paste0("./MJO/ScoresMaps/scores_MJODIFF_",sem,"_",mt,".png"),
+    ggsave(filename=paste0("./MJO/ScoresMaps/scores2_MJODIFF_",sem,"_",mt,".png"),
            plot=fig,width = 10, height = 15)
   }
   
