@@ -180,7 +180,7 @@ y=match(EvenFaseComp, diasfases$EvenFase)
 
 
 # Cargo datos de ONI (NIÑO)
-t<-download.file("https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/detrend.nino34.ascii.txt", destfile = "./MJO/oni")
+t<-download.file("https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/detrend.nino34.ascii.txt", destfile = "./MJO/oni.txt")
 t = download.oni.cpc.ncep.noaa(GUI = FALSE)
 #Cargo datos de MEI (el niño)
 mei <- read.table("./MJO/meiv2.data", header = F, nrows = 43, skip = 1,
@@ -244,9 +244,58 @@ df_diafases <- cbind(as.data.frame(tabla_diafases),list_nino) # converti a dataf
 write.csv(df_diafases, file = "./tabladiafases.csv")
 
 
-# -------------------------- 
-# G R A F I C O S 
+# ------------------------------------------------------------------------------------------------------------------------
+# Ahora hago la tabla con el indice ONI en vez del MEI
 
+# Cargo los datos de eventos
+df_rmm <- readRDS("./MJO/df_rmm.rds")
+df_eventos <- readRDS("./MJO/df_eventos.rds")
+cant_eventos <- length(df_eventos$Inicio)
+
+#######
+# TABLA DE EVENTOS VS FASES 
+# hago una tabla que dice la cantidad de dias en cada fase segun el evento
+# Ademas agrego en que fase del NIño estaba durante el evento
+
+# Cuento cantidad de dias en cada fase segun el evento 
+diasfases = df_rmm[, .(.N), by = .(Evento,FASE)]
+# Junto evento y fase en una columna
+diasfases[, EvenFase:= paste(Evento,FASE)]
+EvenFaseComp=paste(rep(1:cant_eventos,each=8),rep(1:8,cant_eventos))
+y=match(EvenFaseComp, diasfases$EvenFase)
+
+# Acomodo en tabla y tengo NA donde no hay dias en esas fases
+tabla_diafases = t(array(data = diasfases$N[y], dim = c(8,cant_eventos), 
+                         dimnames = list("Fase"=1:8, "Evento"=1:cant_eventos)))
+
+# Cargo datos de ONI (NIÑO)
+download.file("https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/detrend.nino34.ascii.txt", destfile = "./MJO/oni.txt")
+oni = read.table("./MJO/oni.txt", header = T)
+oni = as.data.table(oni)
+
+# agrego una columna de si es niño o niña segun la anomalia
+# +0.5 NIÑO  y -0.5 NIÑA
+oni$ENSO <- "NEUTRAL"
+oni$ENSO[oni$ANOM>0.5] <- "NIÑO"
+oni$ENSO[oni$ANOM<(-0.5)] <- "NIÑA"
+
+# Agrego una columna que une el año y mes
+oni$YRMON <- paste0(oni$YR,oni$MON)
+# Busco el año y mes de inicio de cada evento 
+year_mon= paste0(year(df_eventos$Inicio),month(df_eventos$Inicio))
+
+
+# Toma si hubo niño o niña ese año y mes
+
+list_nino = oni[is.element(oni$YRMON, year_mon),"ENSO"]
+
+
+
+# Agrego columna de fase NIño
+df_diafases <- cbind(as.data.frame(tabla_diafases),list_nino) # converti a dataframe para tener letras y num en el mismo objeto
+
+# Guardo en csv
+write.csv(df_diafases, file = "./tabladiafasesoni.csv")
 
  
  
