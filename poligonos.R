@@ -396,6 +396,12 @@ v1 <- GraphBoxplotViolin(Data = dt.modelos.sacz, Var = "media", Grupo = "modelo"
 v2 <- GraphBoxplotViolin(Data = dt.modelos.sp, Var = "media", Grupo = "modelo",
                           Week = "week", DataObs = med_obs_sp, VarObs = "media",
                           Titulo = "SEPG")
+
+# Le quito la leyenda para unir ambos graficos con una leyenda
+leyenda = get_legend(v1)
+v1<-v1 + theme(legend.position = "none")
+v2<-v2 + theme(legend.position = "none")
                          
-fig3 <- grid.arrange(v1,v2, ncol = 2,top = textGrob("SubX tasa (99-14, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
-ggsave(filename="./SubX_processed_Rdata/violin.png",plot=fig3,width = 17, height = 11)
+fig3 <- grid.arrange(v1,v2,leyenda, ncol = 3, widths = c(0.45,0.45, 0.1),
+                     top = textGrob("SubX T2MA (99-14, Oct-Mar)",gp=gpar(fontsize=20,font=3)))
+ggsave(filename="./SubX_processed_Rdata/violin2.png",plot=fig3,width = 20, height = 10)
