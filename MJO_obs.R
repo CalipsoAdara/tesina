@@ -23,10 +23,10 @@ setwd("/home/lucia.castro/SubX_processed_Rdata")
 #MJO <- readRDS("./MJO.R") # CARGAR ESTO NO CORRER TODO
 
 # Bajar datos del IRI del indice RMM
-URL_amp = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.amplitude/T/%281%20Jan%201999%29%2831%20Dec%202015%29RANGEEDGES/dods"
-URL_fase = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.phase/T/%281%20Jan%201999%29%2831%20Dec%202015%29RANGEEDGES/dods"
-URL_rmm1 = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.RMM1/T/%281%20Jan%201999%29%2831%20Dec%202015%29RANGEEDGES/dods"
-URL_rmm2 = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.RMM2/T/%281%20Jan%201999%29%2831%20Dec%202015%29RANGEEDGES/dods"
+URL_amp = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.amplitude/T/%281%20Jan%201999%29%2831%20Dec%202014%29RANGEEDGES/dods"
+URL_fase = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.phase/T/%281%20Jan%201999%29%2831%20Dec%202014%29RANGEEDGES/dods"
+URL_rmm1 = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.RMM1/T/%281%20Jan%201999%29%2831%20Dec%202014%29RANGEEDGES/dods"
+URL_rmm2 = "http://iridl.ldeo.columbia.edu/SOURCES/.BoM/.MJO/.RMM/.RMM2/T/%281%20Jan%201999%29%2831%20Dec%202014%29RANGEEDGES/dods"
 
 amp = metR::ReadNetCDF(URL_amp, out='array')
 fase = metR::ReadNetCDF(URL_fase, out='array')
@@ -38,7 +38,7 @@ fase = fase[[1]]
 rmm1 = rmm1[[1]]
 rmm2 = rmm2[[1]]
 
-fechas = seq.Date(as.Date("1999-01-01"),as.Date("2015-12-31"),by=1)
+fechas = seq.Date(as.Date("1999-01-01"),as.Date("2014-12-31"),by=1)
 
 # Acomodar en un solo data frame 
 MJO <- data.frame("DATE" = fechas,
@@ -47,15 +47,18 @@ MJO <- data.frame("DATE" = fechas,
                   "RMM1" = rmm1,
                   "RMM2" = rmm2, row.names = seq(1,length(fechas)))
 
+# Acordate que eliminaste el 2015!
+
+
 #saveRDS(MJO, "./MJO/MJO_obs.rds")
 
 # ---------------------------------------------- EVENTOS ACTIVOS -------------------------------------------------
 # Considero un evento activo si cumple la cantidad de dias minimos con amplitud mayor a 1 y desplazandose 
 # hacia el este dos tercios de dichos dias 
-median(amp) #1.195 es mayor a uno
+median(MJO$AMP) #1.195 es mayor a uno
 min_dia = 7 # Cantidad de dias minima para que el evento se considere activo
 dias_este_min = round(min_dia*2/3)
-amp_min = 1.19
+amp_min = 1.195
 
 ## Calculo el angulo entre la recta formada por el punto y el origen, y el eje x 
 ang = atan2(y = rmm2, x = rmm1)
