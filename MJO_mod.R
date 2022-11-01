@@ -280,25 +280,40 @@ for (w in c("Week 1", "Week 2", "Week 3", "Week 4")) { #por cada semana
 
 
 #--------------------------------------------------------------------------------------------------------
-# Hago el grafico
-# matrix 
-legend <- LeyendaCondicional(Breaks = seq(-0.2,0.2,0.05), Paleta = "RdBu", Labels = c("MJO APORTA","MJO NO APORTA"))
-t <- paste("pepe")
-lg <- tableGrob(paste0(grupo,"-",model), theme= ttheme_minimal())
-matrixgraficos <- rbind(matrix(1:(4*7),ncol = 4, nrow = 8, byrow = T),
-                        c(8,8,8,8))
-rg <- grid.arrange(grobs = listagraficos, ncol = 4, nrow = 8,
-             layout_matrix = matrixgraficos,
-             widths = rep(2.7,4),
-             heights = c(rep(2.5,7),0.2),
-             top = textGrob(t,gp=gpar(fontsize=13,font=3))) 
-
-grid.arrange(bp, vp, legend, ncol=2, nrow = 2, 
-             layout_matrix = rbind(c(1,2), c(3,3)),
-             widths = c(2.7, 2.7), heights = c(2.5, 0.2))
-grid.newpage()
-grid.draw(cbind(lg, rg, size = "last"))
-
-ggsave(file = OutFileName, arrangeGrob(grobs = plist, ncol = 2)) 
 # Tabla de inicios activos e inactivos segun el modelo
-table(groups,)
+
+# Cargo los datos de eventos
+df_rmm <- readRDS("./MJO/df_rmm.rds")
+df_eventos <- readRDS("./MJO/df_eventos.rds")
+fechas_act <- as.character(df_rmm$DATE)
+groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')     
+Bins = levels(df_eventos$Bin)
+
+# Vectors a llenar con la cantitda de start de cada modelo
+stdt_totales <-c()  # totales
+stdt_MJO <-c()      # de MJO activos
+stdt_fases <-c()    # de cada fase MJO
+
+for (g in 1:length(groups)) {
+  grupo = groups[g]
+  # Busco que startdates coinciden con los eventos activos
+  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_ONDEFM.rds"))
+  startdate = dimnames(TargetDate)$startdate
+  posMJO = startdate %in% fechas_act
+
+  
+  # Cantidad de inicios antes y despues de restringir en los eventos
+  stdt_totales <-c(stdt_totales,length(startdate))
+  stdt_MJO <-c(stdt_MJO,sum(posMJO))
+ 
+  for (b in Bins) {
+    # Busco que startdates coinciden con los eventos activos
+    fechas_act_bin <- as.character(df_rmm[Bin==b,DATE])
+    posMJOBIN = startdate %in% fechas_act_bin
+    stdt_fases <-c(stdt_fases,sum(posMJOBIN))
+    
+  }
+
+}
+
+
