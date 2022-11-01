@@ -279,41 +279,4 @@ for (w in c("Week 1", "Week 2", "Week 3", "Week 4")) { #por cada semana
 }
 
 
-#--------------------------------------------------------------------------------------------------------
-# Tabla de inicios activos e inactivos segun el modelo
-
-# Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmm.rds")
-df_eventos <- readRDS("./MJO/df_eventos.rds")
-fechas_act <- as.character(df_rmm$DATE)
-groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')     
-Bins = levels(df_eventos$Bin)
-
-# Vectors a llenar con la cantitda de start de cada modelo
-stdt_totales <-c()  # totales
-stdt_MJO <-c()      # de MJO activos
-stdt_fases <-c()    # de cada fase MJO
-
-for (g in 1:length(groups)) {
-  grupo = groups[g]
-  # Busco que startdates coinciden con los eventos activos
-  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_ONDEFM.rds"))
-  startdate = dimnames(TargetDate)$startdate
-  posMJO = startdate %in% fechas_act
-
-  
-  # Cantidad de inicios antes y despues de restringir en los eventos
-  stdt_totales <-c(stdt_totales,length(startdate))
-  stdt_MJO <-c(stdt_MJO,sum(posMJO))
- 
-  for (b in Bins) {
-    # Busco que startdates coinciden con los eventos activos
-    fechas_act_bin <- as.character(df_rmm[Bin==b,DATE])
-    posMJOBIN = startdate %in% fechas_act_bin
-    stdt_fases <-c(stdt_fases,sum(posMJOBIN))
-    
-  }
-
-}
-
 
