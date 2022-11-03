@@ -657,6 +657,7 @@ g <- ggplot(data = Dat, aes(x=modelo,y= media, color = modelo)) +
                                         colour = "grey86"),
         panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                         colour = "grey86")) +
+  theme(legend.key.height  = unit(dev.size()[1] / 10, "inches"))+
 
   ggtitle(Titulo) +
   theme(plot.title = element_text(hjust = 0.5))

@@ -105,13 +105,12 @@ for (g in 1:length(groups)) {
 setDT(binsweeksacz)
 setDT(binsweeksp)
 
-sacz=binsweeksacz[metric == "ACC" & binsweeksacz$week %in% c('Week 1','Week 2'),]
-sp=binsweeksp[metric == "ACC" & binsweeksp$week %in% c('Week 1','Week 2'),]
+sacz=binsweeksacz[binsweeksacz$metric %in% c("ACC","RMSE") & binsweeksacz$week %in% c('Week 2','Week 3'),]
+sp=binsweeksacz[binsweeksp$metric %in% c("ACC","RMSE") & binsweeksp$week %in% c('Week 2','Week 3'),]
 
-# ordeno para tener semana 1 primero, luego semana 2
-setorder(sacz, cols = "week")  
-setorder(sp, cols = "week")
-
+# ordeno para tener semana 2 primero, luego semana 3
+setorder(sacz, "week","metric")  
+setorder(sp, "week","metric")  
 # GUARDO
 saveRDS(sacz,"./ScoresBins/score_sacz.rds")
 saveRDS(sp,"./ScoresBins/score_sp.rds")
