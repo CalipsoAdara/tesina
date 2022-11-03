@@ -12,9 +12,6 @@
 # Limpio enviroment
 rm(list=ls())
 
-# Seteo directorio
-setwd("Documents/tesis/data/mjo")
-svpath = "/home/lucia/Documents/tesis/data/procesada_local"
 
 # Cargo paquetes
 library(secr)
@@ -28,7 +25,10 @@ library(metR)
 
 
 # Cargo mis funciones
-source("/home/lucia/Documents/tesis/scripts/funciones.R")
+source("/home/lucia.castro/tesina/funciones.R")
+
+# Seteo el directorio
+setwd("/home/lucia.castro/SubX_processed_Rdata/MJO")
 
 groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')                       
 models=c('GEOS_V2p1','CCSM4','FIMr1p1','GEM','NESM','GEFS','SAT')   
@@ -39,11 +39,12 @@ df_eventos <- readRDS("df_eventos.rds")
 fechas_act <- as.character(df_rmm$DATE)
 
 # Poligonos. Lon de menor a mayor, el primer punto se repite para cerrar el poligono
-SP <- data.frame(x_coords = c(291,288,291,298,291),
-                 y_coords = c(-30,-40,-53,-40,-30))
+SP <- data.frame(x_coords = c(293,289,290,293,298,293),
+                 y_coords = c(-28,-35,-50,-50,-40,-28))
 
-SACZ <- data.frame(x_coords = c(305,305,310,321,305),
-                   y_coords = c(-10,-25,-30,-10,-10))
+SACZ <- data.frame(x_coords = c(305,305,312,319,323,305),
+                   y_coords = c(-10,-20,-24,-25,-10,-10))
+
 
 # Separar segun la fase inicial
 # Bins = [8,1] [2,3] [4,5] [6,7]
@@ -52,23 +53,22 @@ SACZ <- data.frame(x_coords = c(305,305,310,321,305),
 # la metrica calculada para las fechas inactivas de MJO. En mjo_fases.R ya se calculo y guardaron los datos.
 
 Bins = levels(df_eventos$Bin)
-binsweek <- list()
+score = c("RMSE","ACC")
+binsweeksacz<-data.frame()
+binsweeksp <-data.frame()
+
 
 for (g in 1:length(groups)) {
   grupo = groups[g]
-  model = models[g]
-  
-  metricINA <- readRDS(paste0("./metricsMJO_inact_",grupo,".rds"))[c(1,3)] #Leo rmse y acc solo
   
   for (b in Bins) { # por cada Bin
     # Cargo los datos
-    metricACT <- readRDS(paste0("./ScoresBins/",grupo,b))
-    # Resto
-    resta_bin <- Map('-', metricACT, metricINA) #Resto ambas listas 
+    metric <- readRDS(paste0("./ScoresBins/diff",grupo,b))
+   
     
-    for(m in length(resta_bin)) { # Por cada metrica (acc y rmse)
+    for(m in 1:length(metric)) { # Por cada metrica ( rmse y acc)
       # Convierto a data frame
-      df_resta <- reshape2::melt(resta_bin[[m]])
+      df_resta <- reshape2::melt(metric[[m]])
       
       # Restringir el data frame al area del poligono (primeras 2 col son lat y lon)
       puntossacz=pointsInPolygon(df_resta[,1:2],SACZ) 
@@ -80,8 +80,19 @@ for (g in 1:length(groups)) {
       med_obs_sacz = DTPromEspacPesado(obs_sacz, "value", "week")
       med_obs_sp = DTPromEspacPesado(obs_sp, "value", "week")
       
+      # Agrego una columna con el nombre del modelo, con la metrica y el bin
+      med_obs_sacz$model <- rep(grupo,nrow(med_obs_sacz))
+      med_obs_sp$model <- rep(grupo,nrow(med_obs_sp))
+      
+      med_obs_sacz$metric <- rep(score[m],nrow(med_obs_sacz))
+      med_obs_sp$metric <- rep(score[m],nrow(med_obs_sp))
+      
+      med_obs_sacz$bin <- rep(b,nrow(med_obs_sacz))
+      med_obs_sp$bin <- rep(b,nrow(med_obs_sp))
+      
       # Guardar info para hacer tabla (una para cada region)
-      binsweek<-append(binsweek,med_obs_sacz)
+      binsweeksacz<-rbind(binsweeksacz,med_obs_sacz)
+      binsweeksp<-rbind(binsweeksp,med_obs_sacz)
     }
     
     
@@ -90,8 +101,18 @@ for (g in 1:length(groups)) {
 }# End model
 
 
-data.frame("Metrica" = c("ACC","RMSE"),
-           "Modelo" = groups,
-           "Bin" = Bins,
-           "Semana" = c("Week 1", "Week 2", "Week 3", "Week 4"),
-           "Valor" = 1:224)
+# SOlo guardo semana 2 y 3 porque son las unicas que analizamos y separo lo scores
+setDT(binsweeksacz)
+setDT(binsweeksp)
+
+sacz=binsweeksacz[metric == "ACC" & binsweeksacz$week %in% c('Week 1','Week 2'),]
+sp=binsweeksp[metric == "ACC" & binsweeksp$week %in% c('Week 1','Week 2'),]
+
+# ordeno para tener semana 1 primero, luego semana 2
+setorder(sacz, cols = "week")  
+setorder(sp, cols = "week")
+
+# GUARDO
+saveRDS(sacz,"./ScoresBins/score_sacz.rds")
+saveRDS(sp,"./ScoresBins/score_sp.rds")
+
