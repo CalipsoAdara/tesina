@@ -126,11 +126,11 @@ dimnames(data_all)$L=seq(1,nlead,1)
 #De ahora en mas trabajo con las variables en array en vez de data.table para agilizar procesos
 ar.model = data_all
 
-# Extraigo solo las fechas de startdate desde Octubre a Marzo
-OM = c(1,2,3,10,11,12)
-oct_mar <- which(month(sttdate) %in% OM) # posiciones donde el mes cae entre Octubre a Marzo
+# Extraigo solo las fechas de startdate desde Octubre a Abril
+OA = c(1,2,3,4,10,11,12)
+oct_abr <- which(month(sttdate) %in% OA) # posiciones donde el mes cae entre Octubre a Abril
 
-ar.model.OM <- ar.model[,,,oct_mar]
+ar.model.OM <- ar.model[,,,oct_abr]
 rm("ar.model","data_all")
 
 # Ahora debería agregar un array con la informacion de targetdate y de startdate
@@ -145,5 +145,5 @@ for (j in 1:length(startdate)) {
 
 
 # Todo listo para empezar la verificación octubre-abril. Guardo para limpiar y comenzar la verificación.
-saveRDS(ar.model.OM,paste0("./SubX_processed_Rdata/model_",group,"_ONDEFM.rds"))
-saveRDS(targetdate,paste0("./SubX_processed_Rdata/targetdate_",group,"_ONDEFM.rds"))
+saveRDS(ar.model.OM,paste0("./SubX_processed_Rdata/model/model_",group,"_OA.rds"))
+saveRDS(targetdate,paste0("./SubX_processed_Rdata/model/targetdate_",group,"_OA.rds"))
