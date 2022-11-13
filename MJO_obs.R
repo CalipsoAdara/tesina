@@ -183,6 +183,8 @@ eventos_OA=Reduce(intersect, list(ini_OA, fin_OA))
 df_eventosOA=df_eventos[eventos_OA,]
 pos_OA = which(df_rmm$Evento %in% eventos_OA)
 df_rmmOA = df_rmm[pos_OA,]
+# le cambio el numero a los eventos, para que no queden saltos (1,2,7,etc)
+df_rmmOA$Evento <- rep(1:nrow(df_eventos),df_eventos$Duracion+1)
 
 saveRDS(df_eventosOA,"./model/df_eventosOA.rds")
 saveRDS(df_rmmOA,"./model/df_rmmOA.rds")
@@ -193,6 +195,10 @@ saveRDS(df_rmmOA,"./model/df_rmmOA.rds")
 # TABLA DE EVENTOS VS FASES 
 # hago una tabla que dice la cantidad de dias en cada fase segun el evento
 # Ademas agrego en que fase del NIño estaba durante el evento
+df_rmm <- readRDS("./model/df_rmmOA.rds")
+df_eventos <- readRDS("./model/df_eventosOA.rds")
+
+cant_eventos = nrow(df_eventos)
 
 # Cuento cantidad de dias en cada fase segun el evento 
 diasfases = df_rmm[, .(.N), by = .(Evento,FASE)]
@@ -204,7 +210,7 @@ y=match(EvenFaseComp, diasfases$EvenFase)
 
 # Cargo datos de ONI (NIÑO)
 t<-download.file("https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/detrend.nino34.ascii.txt", destfile = "./MJO/oni.txt")
-t = download.oni.cpc.ncep.noaa(GUI = FALSE)
+
 #Cargo datos de MEI (el niño)
 mei <- read.table("./MJO/meiv2.data", header = F, nrows = 43, skip = 1,
                   col.names = c("YEAR","DecJan", "JanFeb", "FebMar", "MarApr", "AprMay", 
@@ -271,8 +277,9 @@ write.csv(df_diafases, file = "./tabladiafases.csv")
 # Ahora hago la tabla con el indice ONI en vez del MEI
 
 # Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmm.rds")
-df_eventos <- readRDS("./MJO/df_eventos.rds")
+
+df_rmm <- readRDS("./model/df_rmm.rds")
+df_eventos <- readRDS("./model/df_eventos.rds")
 cant_eventos <- length(df_eventos$Inicio)
 
 #######
@@ -318,7 +325,7 @@ list_nino = oni[is.element(oni$YRMON, year_mon),"ENSO"]
 df_diafases <- cbind(as.data.frame(tabla_diafases),list_nino) # converti a dataframe para tener letras y num en el mismo objeto
 
 # Guardo en csv
-write.csv(df_diafases, file = "./tabladiafasesoni.csv")
+write.csv(df_diafases, file = "./model/tabladiafasesoni.csv")
 
  
  
