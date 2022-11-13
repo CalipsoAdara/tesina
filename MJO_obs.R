@@ -40,6 +40,13 @@ rmm2 = rmm2[[1]]
 
 fechas = seq.Date(as.Date("1999-01-01"),as.Date("2014-12-31"),by=1)
 
+# Busco la mediana de OCT A ABRIL unicamente
+OM = c(1,2,3,4,10,11,12)
+oct_mar <- which(month(fechas) %in% OM) # posiciones donde el mes cae entre Octubre a Abril
+mediana = median(amp[oct_mar])  # 1,22
+
+
+
 # Acomodar en un solo data frame 
 MJO <- data.frame("DATE" = fechas,
                   "AMP" = amp,
@@ -49,16 +56,15 @@ MJO <- data.frame("DATE" = fechas,
 
 # Acordate que eliminaste el 2015!
 
-
 #saveRDS(MJO, "./MJO/MJO_obs.rds")
 
 # ---------------------------------------------- EVENTOS ACTIVOS -------------------------------------------------
 # Considero un evento activo si cumple la cantidad de dias minimos con amplitud mayor a 1 y desplazandose 
 # hacia el este dos tercios de dichos dias 
-median(MJO$AMP) #1.195 es mayor a uno
+median(MJO$AMP) #1.22 es mayor a uno
 min_dia = 7 # Cantidad de dias minima para que el evento se considere activo
 dias_este_min = round(min_dia*2/3)
-amp_min = 1.195
+amp_min = 1.22
 
 ## Calculo el angulo entre la recta formada por el punto y el origen, y el eje x 
 ang = atan2(y = rmm2, x = rmm1)
@@ -138,7 +144,7 @@ df_eventos <- data.frame("Inicio" = fecha_ini,
 
 setDT(df_eventos)
 #Guardo
-saveRDS(df_rmm, "./MJO/df_rmm.rds")
+saveRDS(df_rmm, "./model/df_rmm.rds")
 
 
 # Graficos de cada evento
@@ -164,8 +170,22 @@ diasvsfases=df_eventos[, .(.N), by = .(Bin)]
 df_rmm[,Bin:=(rep(df_eventos$Bin, (df_eventos$Duracion+1)))]
 # Repite el valor de Bin por la duracion del evento 
 # (+1 para que cuente el dia inicial)
-saveRDS(df_eventos,"./MJO/df_eventos.rds")
-saveRDS(df_rmm,"./MJO/df_rmm.rds")
+
+# restringo a eventos solo en oct a abril
+df_eventos$Inicio
+OM = c(1,2,3,4,10,11,12)
+# Tiene que ser tanto su inicio como su final en oct y abril
+# si hay un evento que inicia en abril pero termina en los primeros dias de mayo, se elimina
+ini_OA<- which(month(df_eventos$Inicio) %in% OM) 
+fin_OA<-which(month(df_eventos$Final) %in% OM) 
+eventos_OA=Reduce(intersect, list(ini_OA, fin_OA))
+# Restringo
+df_eventosOA=df_eventos[eventos_OA,]
+pos_OA = which(df_rmm$Evento %in% eventos_OA)
+df_rmmOA = df_rmm[pos_OA,]
+
+saveRDS(df_eventosOA,"./model/df_eventosOA.rds")
+saveRDS(df_rmmOA,"./model/df_rmmOA.rds")
 
 #
 
