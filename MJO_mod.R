@@ -20,7 +20,7 @@ library(dplyr)
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Seteo el directorio
-setwd("/home/lucia.castro/SubX_processed_Rdata")
+setwd("/home/lucia.castro/SubX_processed_Rdata/model")
 
 groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')                       
 models=c('GEOS_V2p1','CCSM4','FIMr1p1','GEM','NESM','GEFS','SAT')   
@@ -44,8 +44,8 @@ var_mjo = c("RMM1","RMM2","amplitude","phase")
 # Podria separar por fases al iniciar 
 
 # Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmm.rds")
-df_eventos <- readRDS("./MJO/df_eventos.rds")
+df_rmm <- readRDS("./df_rmm.rds")
+df_eventos <- readRDS("./df_eventos.rds")
 fechas_act <- as.character(df_rmm$DATE)
 # Cargo datos del rho1 para la significancia
 rho1 <- readRDS("./rho1.rds")
@@ -54,15 +54,15 @@ for (g in 1:length(groups)) {
   grupo = groups[g]
   model = models[g]
   # Busco que startdates coinciden con los eventos activos
-  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_ONDEFM.rds"))
+  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_OA.rds"))
   startdate = dimnames(TargetDate)$startdate
   posMJO = startdate %in% fechas_act
   
   modelweek<-readRDS(paste0("./modelweek_",grupo,".rds"))
   obsweek<-readRDS(paste0("./obsweek_",grupo,".rds"))
   
-  modMJO = modelweek[,,posMJO,] #para inactive !posMJO
-  obsMJO = obsweek[,,posMJO,]
+  modMJO = modelweek[,,!posMJO,] #para inactive !posMJO
+  obsMJO = obsweek[,,!posMJO,]
   
   # Cantidad de inicios antes y despues de restringir en los eventos
   nstartdate = length(startdate)
@@ -94,8 +94,8 @@ for (g in 1:length(groups)) {
   dt.var = ggScoreSemanal(var)
   dt.acc = ggScoreSemanal(acc)
   
-  metrics <- list(rmse,me,acc,var)
-  saveRDS(metrics, paste0("./MJO/metricsMJO_act_",grupo,".rds"))
+  metrics <- list(rmse,me,acc,var,test)
+  saveRDS(metrics, paste0("./metricsMJO_inact_",grupo,".rds"))
   #---------------------------------------------------------------------------------------
   #  Gráficos  
   #---------------------------------------------------------------------------------------
@@ -107,9 +107,9 @@ for (g in 1:length(groups)) {
   
   
   title = title <- paste("SubX ",grupo,"-",model," Inicios",nstartdateMJO,"/",nstartdate,
-                         "\nMJO active events tasa (99-14, Oct-Mar) ")
+                         "\nMJO inactive events T2MA(99-14, Oct-Apr) ")
   fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
-  ggsave(filename=paste0("./MJO/ScoresMaps/scores_map_MJO_act_",grupo,".png"),
+  ggsave(filename=paste0("./scores_map_MJO_act_",grupo,".png"),
          plot=fig,width = 10, height = 15)
   
 }
@@ -178,7 +178,7 @@ for (g in 1:length(groups)) {
   model = models[g]
   
   # Cargo las fechas del modelo
-  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_ONDEFM.rds"))
+  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_OA.rds"))
   startdate = dimnames(TargetDate)$startdate
   # Cargo datos de modelo y observaciones
   modelweek<-readRDS(paste0("./modelweek_",grupo,".rds"))

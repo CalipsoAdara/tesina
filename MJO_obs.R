@@ -327,6 +327,8 @@ df_diafases <- cbind(as.data.frame(tabla_diafases),list_nino) # converti a dataf
 # Guardo en csv
 write.csv(df_diafases, file = "./model/tabladiafasesoni.csv")
 
+# Fase inicial
+fINI = df_eventos[, .(.N), by = .(FaseIni)]
  
  
 
