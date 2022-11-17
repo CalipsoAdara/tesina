@@ -28,7 +28,7 @@ library(metR)
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Seteo el directorio
-setwd("/home/lucia.castro/SubX_processed_Rdata/MJO")
+setwd("/home/lucia.castro/SubX_processed_Rdata/model")
 
 groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')                       
 models=c('GEOS_V2p1','CCSM4','FIMr1p1','GEM','NESM','GEFS','SAT')   
@@ -63,7 +63,7 @@ for (g in 1:length(groups)) {
   
   for (b in Bins) { # por cada Bin
     # Cargo los datos
-    metric <- readRDS(paste0("./ScoresBins/diff",grupo,b))
+    metric <- readRDS(paste0("./MJO/ScoresBins/diff",grupo,b))
    
     
     for(m in 1:length(metric)) { # Por cada metrica ( rmse y acc)
@@ -92,7 +92,7 @@ for (g in 1:length(groups)) {
       
       # Guardar info para hacer tabla (una para cada region)
       binsweeksacz<-rbind(binsweeksacz,med_obs_sacz)
-      binsweeksp<-rbind(binsweeksp,med_obs_sacz)
+      binsweeksp<-rbind(binsweeksp,med_obs_sp)
     }
     
     
@@ -106,12 +106,14 @@ setDT(binsweeksacz)
 setDT(binsweeksp)
 
 sacz=binsweeksacz[binsweeksacz$metric %in% c("ACC","RMSE") & binsweeksacz$week %in% c('Week 2','Week 3'),]
-sp=binsweeksacz[binsweeksp$metric %in% c("ACC","RMSE") & binsweeksp$week %in% c('Week 2','Week 3'),]
+sp=binsweeksp[binsweeksp$metric %in% c("ACC","RMSE") & binsweeksp$week %in% c('Week 2','Week 3'),]
 
 # ordeno para tener semana 2 primero, luego semana 3
 setorder(sacz, "week","metric")  
 setorder(sp, "week","metric")  
 # GUARDO
-saveRDS(sacz,"./ScoresBins/score_sacz.rds")
-saveRDS(sp,"./ScoresBins/score_sp.rds")
+saveRDS(sacz,"./MJO/ScoresBins/score_sacz.rds")
+saveRDS(sp,"./MJO/ScoresBins/score_sp.rds")
 
+write.csv(sacz,"./MJO/ScoresBins/score_sacz.csv")
+write.csv(sp,"./MJO/ScoresBins/score_sp.csv")
