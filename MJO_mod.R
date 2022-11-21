@@ -44,8 +44,8 @@ var_mjo = c("RMM1","RMM2","amplitude","phase")
 # Podria separar por fases al iniciar 
 
 # Cargo los datos de eventos
-df_rmm <- readRDS("./df_rmm.rds")
-df_eventos <- readRDS("./df_eventos.rds")
+df_rmm <- readRDS("./df_rmmOA.rds")
+df_eventos <- readRDS("./df_eventosOA.rds")
 fechas_act <- as.character(df_rmm$DATE)
 # Cargo datos del rho1 para la significancia
 rho1 <- readRDS("./rho1.rds")
@@ -95,7 +95,7 @@ for (g in 1:length(groups)) {
   dt.acc = ggScoreSemanal(acc)
   
   metrics <- list(rmse,me,acc,var,test)
-  saveRDS(metrics, paste0("./metricsMJO_inact_",grupo,".rds"))
+  saveRDS(metrics, paste0("./MJO/metricsMJO_inact_",grupo,".rds"))
   #---------------------------------------------------------------------------------------
   #  Gráficos  
   #---------------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ for (g in 1:length(groups)) {
   title = title <- paste("SubX ",grupo,"-",model," Inicios",nstartdateMJO,"/",nstartdate,
                          "\nMJO inactive events T2MA(99-14, Oct-Apr) ")
   fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
-  ggsave(filename=paste0("./scores_map_MJO_act_",grupo,".png"),
+  ggsave(filename=paste0("./MJO/scores_map_MJO_act_",grupo,".png"),
          plot=fig,width = 10, height = 15)
   
 }
@@ -186,8 +186,11 @@ for (g in 1:length(groups)) {
   metricINA <- readRDS(paste0("./MJO/metricsMJO_inact_",grupo,".rds"))[c(1,3)] #Leo rmse y acc solo
   
   for (b in Bins) { # por cada Bin
+    # Extraigo las fases de ese bin
+    f1 = as.numeric(substr(b,5,5))
+    f2 = as.numeric(substr(b,6,6))
     # Busco que startdates coinciden con los eventos activos
-    fechas_act_bin <- as.character(df_rmm[Bin==b,DATE])
+    fechas_act_bin <- as.character(df_rmm[FASE==f1 |FASE==f2 ,DATE])
     posMJOBIN = startdate %in% fechas_act_bin
 
     # Cantidad de inicios antes y despues de restringir en los eventos
@@ -216,7 +219,6 @@ for (g in 1:length(groups)) {
   }# End Bin
 }# End model
 
-#---------------------------------------------------------------------------------------------------
 
 # PRUEBA DE FACET GRID 
 # Si resto activo - inactivo
@@ -262,7 +264,7 @@ for (w in c("Week 1", "Week 2", "Week 3", "Week 4")) { #por cada semana
     
     # Restrinjo y grafico
     data = dt[week == w & metric == mt]
-    titulo = paste("MJO ACT-INACT \n ",mt,w)
+    titulo = paste("MJO act-inact (99-14, Oct-Apr) \n ",mt,w)
     
     # si haces el rmse tenes que poner direccion 1
     # si haces acc tenes que poner direccion -1
@@ -272,7 +274,7 @@ for (w in c("Week 1", "Week 2", "Week 3", "Week 4")) { #por cada semana
     fig<-GraphMJOCond(Data=data, Breaks = seq(-0.5,0.5,0.10), 
                  Paleta = "RdBu", Direccion = direccion, Titulo = titulo)
     sem = substr(w,6,6)
-    ggsave(filename=paste0("./MJO/ScoresMaps/scores2_MJODIFF_",sem,"_",mt,".png"),
+    ggsave(filename=paste0("./MJO/ScoresBins/scores2_MJODIFF_",sem,"_",mt,".png"),
            plot=fig,width = 10, height = 15)
   }
   
