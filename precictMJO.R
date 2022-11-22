@@ -18,7 +18,7 @@ library("grid")
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Path a donde guardar los archivos
-savepath = "/home/lucia.castro/SubX_processed_Rdata/"
+savepath = "/home/lucia.castro/SubX_processed_Rdata/model"
 
 # Seteo el directorio
 setwd(savepath)
@@ -32,19 +32,20 @@ targetdateMODELOS <- list()
 startdateMODELOS <- list()
 
 for (m in 1:nmodels) {
-  MODELOS[[m]] <- readRDS(paste0("./model_",models[m],"_ONDEFM.rds"))
-  targetdateMODELOS[[m]] <- readRDS(paste0("./targetdate_",models[m],"_ONDEFM.rds"))
+  MODELOS[[m]] <- readRDS(paste0("./model_",models[m],"_OA.rds"))
+  targetdateMODELOS[[m]] <- readRDS(paste0("./targetdate_",models[m],"_OA.rds"))
   startdateMODELOS[[m]] <- dimnames(targetdateMODELOS[[m]])$startdate
 }
 
 # MME
-targetdateMME <- readRDS(paste0("./targetdate_MME_ONDEFM.rds"))
+targetdateMME <- readRDS(paste0("./targetdate_MME_OA.rds"))
 sabadosMME <- dimnames(targetdateMME)$startdate
 
 # MJO
 # Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmm.rds")
-df_eventos <- readRDS("./MJO/df_eventos.rds")
+df_rmm <- readRDS("./MJO/df_rmmOA.rds")
+
+df_eventos <- readRDS("./MJO/df_eventosOA.rds")
 fechas_act <- as.character(df_rmm$DATE)
 
 # Busco que sabados coinciden con las fechas de MJO activos
@@ -166,6 +167,18 @@ sabNOMJO <- as.Date(sabadosMME[!sabadosMME %in% fechas_act])
 #Restringo tambien el targetdate del multimodelo para fechas Inactivas
 targetdateMMENOMJO <- targetdateMME[,!sabadosMME %in% fechas_act]
 
+
+#----------- VERSION NUEVA
+predicnomjo <- EnsamblesPredictiblidad(Modelos=MODELOS,
+                                       TgdtMod=targetdateMODELOS, 
+                                       StdtMod=startdateMODELOS, 
+                                       FechEnsam = sabNOMJO,
+                                       TgdtEnsam = targetdateMMENOMJO,
+                                       FilePath = "./MJO/predic")
+
+# Guardo
+saveRDS(predicnomjo, "./MJO/predic/predictnomjo.rds")
+#----------- VERSION ANTERIOR
 for (model in 1:nmodels) {
   
   # Tomo el modelo a comparar contra la EM del resto de los mod
