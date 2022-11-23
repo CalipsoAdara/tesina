@@ -280,7 +280,7 @@ saveRDS(predictibilidad, "./MJO/predic/predictnomjo.rds")
 
 # MJO
 # Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmm.rds")
+df_rmm <- readRDS("./MJO/df_rmmOA.rds")
 df_rmm <- data.table(df_rmm)
 
 # Vector Bin
@@ -288,8 +288,11 @@ bin = levels(df_rmm$Bin)
 
 for (b in bin) {
   
+  # Obtengo las fases correspondientes a ese bin
+  f1 = substr(b,5,5)
+  f2 = substr(b,6,6)
   # Fechas de ese bin
-  fechas_bin <- df_rmm[Bin == b,.(DATE)]
+  fechas_bin <- df_rmm[FASE == f1 |FASE == f2 ,.(DATE)]
   fechas_bin <- as.character(fechas_bin$DATE)
   
   # Busco que sabados coinciden con las fechas del bin
@@ -339,7 +342,7 @@ for (b in bin) {
   # grafico 
   fase = paste("Fases",substr(b,5,5),"y",substr(b,6,6))
   g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.4,0.4,0.1),Label = "ACC",Paleta = "RdBu",Direccion = -1)
-  g <- g + ggtitle(paste0("Predictibilidad MJO ACT - INACT \n",fase," tasa (99-14, Oct-Mar)"))
+  g <- g + ggtitle(paste0("Predictibilidad SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Abr)"))
   
   ggsave(filename = paste0("./MJO/predic/predic_diff",b,".png"),plot=g,width = 10, height = 4)
 }
