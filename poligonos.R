@@ -109,12 +109,12 @@ modelweek <- list()
 obsweek <- list()
 
 for (i in 1:nmodels) {
-  inpath = paste0("./SubX_processed_Rdata/modelweek_",grupos[i],".rds")
+  inpath = paste0("./SubX_processed_Rdata/model/modelweek_",grupos[i],".rds")
   modelweek[[i]] <- readRDS(inpath)
 }
 
 for (i in 1:nmodels) {
-  inpath = paste0("./SubX_processed_Rdata/obsweek_",grupos[i],".rds")
+  inpath = paste0("./SubX_processed_Rdata/model/obsweek_",grupos[i],".rds")
   obsweek[[i]] <- readRDS(inpath)
 }
 
@@ -223,8 +223,8 @@ for (mod in 1:nmodels) {
  
 }
 
-saveRDS(lista.modelos.sacz,"./SubX_processed_Rdata/poligonos/poli.sacz.rds")
-saveRDS(lista.modelos.sp,"./SubX_processed_Rdata/poligonos/poli.sp.rds")
+saveRDS(lista.modelos.sacz,"./SubX_processed_Rdata/model/poligonos/poli.sacz.rds")
+saveRDS(lista.modelos.sp,"./SubX_processed_Rdata/model/poligonos/poli.sp.rds")
 
 
 
@@ -236,10 +236,10 @@ lat = dimnames(ar.anom)$lat
 
 # Acomodo datos para hacer medias semanales
 dias = dimnames(ar.anom)$day
-inisem = seq.Date(as.Date("1999-01-01"),as.Date("2015-12-31"),by=7)
+inisem = seq.Date(as.Date("1999-01-01"),as.Date("2014-12-31"),by=7)
 
 # Extraigo solo las fechas de startdate desde Octubre a Marzo
-OM = c(1,2,3,10,11,12)
+OM = c(1,2,3,4,10,11,12)
 #oct_mar <- which(month(dias) %in% OM) # posiciones donde el mes cae entre Octubre a Marzo
 inisemOM <- inisem[which(month(inisem) %in% OM)]
 #ar.anom.OM <- ar.anom[,,oct_mar]
@@ -276,9 +276,9 @@ med_obs_sp = DTPromEspacPesado(obs_sp, "value", "semana")
 med_obs = DTPromEspacPesado(df.anom, "value", "semana")
 
 # guardo
-saveRDS(med_obs_sacz,"./SubX_processed_Rdata/poligonos/obs_sacz.rds")
-saveRDS(med_obs_sp,"./SubX_processed_Rdata/poligonos/obs_sp.rds")
-saveRDS(med_obs,"./SubX_processed_Rdata/poligonos/obs.rds")
+saveRDS(med_obs_sacz,"./SubX_processed_Rdata/model/poligonos/obs_sacz.rds")
+saveRDS(med_obs_sp,"./SubX_processed_Rdata/model/poligonos/obs_sp.rds")
+saveRDS(med_obs,"./SubX_processed_Rdata/model/poligonos/obs.rds")
 
 # Encontrar semanas debajo del p10 y por encima del p90
 fecha_sacz = FechasPercentiles(med_obs_sacz,med_obs_sacz$media)
@@ -300,7 +300,7 @@ Reduce(intersect, p90)
 
 
 # Creo archivo csv 
-write.csv(extremo, "./SubX_processed_Rdata/ext_newpoli.csv")
+write.csv(extremo, "./SubX_processed_Rdata/model/poligonos/ext_newpoli.csv")
 
 # Grafico de la ubicacion de los poligonos en un dia particular
 SP <- data.frame(x_coords = c(293,289,290,293,298,293),
@@ -333,24 +333,24 @@ theme(axis.text=element_text(size=12))+
   coord_cartesian(xlim = c(270,325), ylim = c(-60,15)) +
 
     # agrego nombres de poligonos
-    annotate("text", x = 297, y = -32, label = "SEP",
+    annotate("text", x = 297, y = -32, label = "SEPG",
              col = "slateblue", size = 5)  +     #angle=-60 si queres
   annotate("text", x = 312, y = -9, label = "SACZ",
             col = "seagreen", size = 5)
 g
 # guardo
-ggsave(plot=g,filename = "./SubX_processed_Rdata/poligonos/poli.png",width = 7, height = 9)
+ggsave(plot=g,filename = "./SubX_processed_Rdata/model/poligonos/poli.png",width = 7, height = 9)
 
 
 #---------------------------------------------------------------------------------------------
 #-----------------------------------------B O X P L O T S------------------------------------- 
 
 #modelos
-lista.modelos.sacz <- readRDS("./SubX_processed_Rdata/poligonos/poli.sacz.rds")
-lista.modelos.sp <- readRDS("./SubX_processed_Rdata/poligonos/poli.sp.rds")
+lista.modelos.sacz <- readRDS("./SubX_processed_Rdata/model/poligonos/poli.sacz.rds")
+lista.modelos.sp <- readRDS("./SubX_processed_Rdata/model/poligonos/poli.sp.rds")
 #reanalisis
-med_obs_sacz <- readRDS("./SubX_processed_Rdata/poligonos/obs_sacz.rds")
-med_obs_sp <- readRDS("./SubX_processed_Rdata/poligonos/obs_sp.rds")
+med_obs_sacz <- readRDS("./SubX_processed_Rdata/model/poligonos/obs_sacz.rds")
+med_obs_sp <- readRDS("./SubX_processed_Rdata/model/poligonos/obs_sp.rds")
 
 
 # Armar datos para boxplots
@@ -403,5 +403,5 @@ v1<-v1 + theme(legend.position = "none")
 v2<-v2 + theme(legend.position = "none")
                          
 fig3 <- grid.arrange(v1,v2,leyenda, ncol = 3, widths = c(0.45,0.45, 0.1),
-                     top = textGrob("SubX T2MA (99-14, Oct-Mar)",gp=gpar(fontsize=20,font=3)))
-ggsave(filename="./SubX_processed_Rdata/violin2.png",plot=fig3,width = 20, height = 10)
+                     top = textGrob("SubX T2MA (99-14, Oct-Apr)",gp=gpar(fontsize=20,font=3)))
+ggsave(filename="./SubX_processed_Rdata/model/poligonos/violin2.png",plot=fig3,width = 20, height = 10)
