@@ -28,7 +28,7 @@ lat = dimnames(ar.anom)$lat
 # Acomodo datos para hacer medias semanales
 # En este caso voy a hacer medias semanales segun las semanas del mme
 dias = dimnames(ar.anom)$day
-targetdateMME= readRDS("./SubX_processed_Rdata/targetdate_MME_ONDEFM.rds")
+targetdateMME= readRDS("./SubX_processed_Rdata/model/targetdate_MME_OA.rds")
 inisemOM <- as.Date(dimnames(targetdateMME)$startdate)
 
 # Poligonos. Lon de menor a mayor, el primer punto se repite para cerrar el poligono
@@ -94,4 +94,4 @@ Reduce(intersect, p90)
 
 
 # Creo archivo csv 
-write.csv(extremo, "./SubX_processed_Rdata/extMME.csv")
+write.csv(extremo, "./SubX_processed_Rdata/model/ext/extMME.csv")
