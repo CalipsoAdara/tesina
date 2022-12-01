@@ -1400,7 +1400,7 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
     
     # Correlacion entre mod y ens n-1
     cor_mod <- Predictibilidad(mod_aparte, MME_pro)
-    saveRDS(cor_mod, paste0(FilePath,"/predic_",models[model]))
+    saveRDS(cor_mod, paste0(FilePath,"/predic_",models[model],".rds"))
     print(paste("termino la correlacion del modelo",models[model]))
     
     # ELimino para hacer espacio
@@ -1412,12 +1412,28 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
   
   cor_mod <- array(NA, dim = c(66,76,28,nmodels))
   for (m in nmodels) {
-    cor_mod[,,,model] <- readRDS(paste0(FilePath,"/predic_",models[m]))
+    cor_mod[,,,model] <- readRDS(paste0(FilePath,"/predic_",models[m],".rds"))
   }
   
   predictibilidad = apply(cor_mod , c(1,2,3), mean, na.rm = T)
   
   return(predictibilidad)
+  
+}
+#----------------------------------------------------------------------------------------
+EsFechaCercana <- function(Fechas1, Fechas2, Criterio){
+  # Funcion que chequea que la diferencia entre dos vectores de fechas. No importa que fecha va primero
+  # sirve para MENOR O IGUAL 
+  # Fechas1: vector con fechas para comparar
+  # Fechas2: vector con fechas para comparar
+  # Criterio: dias entre fechas1 y fechas2 (por ej, 3 dias de diferencia)
+  
+  Fechas1 = as.Date(Fechas1)
+  Fechas2 = as.Date(Fechas2)
+  
+  diferencia = abs(Fechas1-Fechas2)>=Criterio
+  return(diferencia)
+  # Devuelve las posiciones True 
   
 }
 #----------------------------------------------------------------------------------------

@@ -143,11 +143,11 @@ PuntoDentroPoligono <- function(Poli,Data) {
 #--------------------------------------------------------------------------------------
 #  Main Program  
 #---------------------------------------------------------------------------------------
-ext <- read.csv("./SubX_processed_Rdata/ext.csv",stringsAsFactors = F)
+# ext <- read.csv("./SubX_processed_Rdata/modeL/extMME/extMME.csv",stringsAsFactors = F)
 
 # Los nombres 
 grupos = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL","MME")
-modelname = c('FIMr1p1','GEM','GEFS','GEOS_V2p1','CCSM4','NESM',"SAT")
+modelname = c('FIMr1p1','GEM','GEFS','GEOS_V2p1','CCSM4','NESM',"")
 nmodels = length(grupos) 
 regiones = c("SACZ","SP")
 
@@ -332,3 +332,54 @@ ACC <- function(Lon,Lat,Model,Anom){
   } # End loop week
   return(acc)
 }
+
+#------------------------------------------------------------------------------------------------
+# D I F E R E N C I A  EN  S C O R E S 
+#
+# aqui no promedio espacialmente
+
+# Path a donde guardar los archivos
+ext <- read.csv("./extMME/extMME.csv",stringsAsFactors = F)
+savepath = "/home/lucia.castro/SubX_processed_Rdata/model"
+
+# Seteo el directorio
+setwd(savepath)
+
+# Calculo rmse y acc para el caso no extremo y extremo por separado, luego resto
+
+colname = c("TOTAL10","TOTAL90")
+label = c("10","90")
+
+for (mod in 1:nmodels) { # por cada modelo
+  
+  # Leer datos
+  model = grupos[mod]
+  ar.model = readRDS(paste0("./modelweek_",model, ".rds"))
+  ar.anom = readRDS(paste0("./obsweek_",model, ".rds"))
+  inicios = as.Date(dimnames(ar.model)$start)
+  
+  for (p in 1:length(colname)) { # por cada percentil
+    
+    # Busco posiciones de fechas extrema
+    extrema = BuscarFechaExtrema(Ext = ext, Columna = colname[p], Startdate = inicios)
+    
+    # Remuevo posiciones repetidas y ordeno de menor a mayor
+    extrema = sort(unique(extrema))
+    
+    ar.model.noext = ar.model[,,-extrema,]
+    ar.anom.noext = ar.anom[,,-extrema,]
+    ar.model.ext = ar.model[,,extrema,]
+    ar.anom.ext = ar.anom[,,extrema,]
+    
+    #--- METRICAS---------
+    # obs - pro
+    metext = Metrics(ar.anom.ext,ar.model.ext)
+    metnoext = Metrics(ar.anom.noext,ar.model.noext)
+    
+    # guardo
+    saveRDS(metext,paste0("./extMME/scoresext_",model,label[p]))
+    saveRDS(metnoext,paste0("./extMME/scoresnoext_",model,label[p]))
+    
+  } # end loop percentil
+  
+} # end loop models
