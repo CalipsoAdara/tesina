@@ -1437,3 +1437,24 @@ EsFechaCercana <- function(Fechas1, Fechas2, Criterio){
   
 }
 #----------------------------------------------------------------------------------------
+FactorsModels <- function(DF,Col) {
+  ## DF: Data frame o data table donde cambiar el nombre de los modelos
+  ## Col: Nombre de la columna donde estan los nombres de los modelos
+  
+  # Cambio el nombre de modelos por factores
+  # Uso factors para cambiar el orden de los models
+  library(stringr)
+  library(data.table)
+  
+  
+  setnames(DF,old = Col,"model")
+  
+  rep_str = c('GMAO'='GMAO-GEOS_V2p1','RSMAS'='RSMAS-CCSM4','ESRL'='ESRL-FIMr1p1',
+              'ECCC'='ECCC-GEM','NRL'='NRL-NESM','EMC'='EMC-GEFS','MME'='MME')
+  
+  
+  DF$model <- str_replace_all(DF$model, rep_str)
+  return(DF)
+  
+}
+#----------------------------------------------------------------------------------------
