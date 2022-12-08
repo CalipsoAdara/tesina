@@ -794,22 +794,40 @@ FechasPercentiles <- function(DF,Variable) {
 # -----------------------------------------------------------------------------------
 # Funcion que dado un data frame realiza un promedio espacial pesado por la latitud
 # Devuelve data table con los valores unicos 
-DTPromEspacPesado <- function(DF,Variable,Grupo) {
+DTPromEspacPesado <- function(DF,Variable,Grupo,Lat) {
   ## DF: Data frame 
   ## Variable: Columna del data frame con el valor a promediar
   ## Grupo: Una o mas columnas del data frame que tener en cuenta para hacer 
   ## el promedio. Ej: c(Semanas, Region)
+  ## Lat: NOmbre de columna con las latitudes
   
   # Promedio en lat y long. Para eso paso a data table
   dt = as.data.table(DF)
   
-  # Peso por la latitud 
+  # Peso por la latitud
+  setnames(dt,old = Lat,new = "lat")
   dt = dt[,varlat := get(Variable)*cos(lat*pi/180)]
   
   # Hago el promedio y elimina filas repetidas. Luego le cambio el nombre
   # a la columna porque queda "get"
-  promedio = dt[,list(media=mean(varlat,na.rm=TRUE)),by=.(get(Grupo))]
-  setnames(promedio, "get", Grupo)
+  if (length(Grupo)==1) {  # una columna de condicion
+    promedio = dt[,list(media=mean(varlat,na.rm=TRUE)),by=.(get(Grupo))]
+    setnames(promedio, "get", Grupo)
+  }
+  if (length(Grupo)==2) {  # dos columnas de condicion
+    promedio = dt[,list(media=mean(varlat,na.rm=TRUE)),by=.(get(Grupo[1]),get(Grupo[2]))]
+    setnames(promedio, "get", Grupo[1])
+    setnames(promedio, "get.1", Grupo[2])
+  }
+  if (length(Grupo)==3) {  # tres columnas de condicion
+    promedio = dt[,list(media=mean(varlat,na.rm=TRUE)),by=.(get(Grupo[1]),get(Grupo[2]),get(Grupo[3]))]
+    setnames(promedio, "get", Grupo[1])
+    setnames(promedio, "get.1", Grupo[2])
+    setnames(promedio, "get.2", Grupo[3])
+   
+  }
+  
+
   
   return(promedio)
 }
@@ -1436,7 +1454,9 @@ EsFechaCercana <- function(Fechas1, Fechas2, Criterio){
   # Devuelve las posiciones True 
   
 }
-#----------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------
+# Funcion para convertir rapido los nombres de modelos en dataframes, y que los haga 
+# factors para que ordernarlos como yo quiero (MME Ultimo)
 FactorsModels <- function(DF,Col) {
   ## DF: Data frame o data table donde cambiar el nombre de los modelos
   ## Col: Nombre de la columna donde estan los nombres de los modelos
@@ -1447,14 +1467,114 @@ FactorsModels <- function(DF,Col) {
   library(data.table)
   
   
-  setnames(DF,old = Col,"model")
+  setnames(DF,old = Col,"MODEL")
   
   rep_str = c('GMAO'='GMAO-GEOS_V2p1','RSMAS'='RSMAS-CCSM4','ESRL'='ESRL-FIMr1p1',
               'ECCC'='ECCC-GEM','NRL'='NRL-NESM','EMC'='EMC-GEFS','MME'='MME')
   
   
-  DF$model <- str_replace_all(DF$model, rep_str)
+  DF$MODEL <- str_replace_all(DF$MODEL, rep_str)
+  # Para que plotee los leads de forma correcta los convierto en factors
+  DF$MODEL=  factor(DF$MODEL, levels=c('GMAO-GEOS_V2p1','RSMAS-CCSM4','ESRL-FIMr1p1',
+                                                     'ECCC-GEM','NRL-NESM','EMC-GEFS','MME'))
   return(DF)
   
 }
+#----------------------------------------------------------------------------------------
+# FUncion para hacer la correlacion entre dos arrays cuando tienen mas de una dimension
+# Le falta pulido. en realidad lo hace iterando sobre 3 dimensiones, si hubiera mas no se puede
+ACC2 <- function(Ar1, Ar2, Dim) {
+  # Tienen que tener mismas dimensiones 
+  ## Ar1: array 1 a comparar
+  ## Ar2: array 2 a comparar
+  ## Dim: posicion donde esta la dimension a correlacion. Por ej, 2
+  
+  # Para el calculo de ACC hago una vuelta mas, para recorrer todos los puntos y obtener un valor de correlacion
+  dim = dim(Ar1)[-Dim]
+  acc <- array(NA, dim = dim)
+  for (week in 1:dim[3]) {
+    for (lat in 1:dim[2]) {
+      for (lon in 1:dim[1]) {
+        
+        # Me quedo solo una dimension a analizar y todos las fechas de pronostico
+        ar1.week <- Ar1[lon,lat,week,]
+        ar2.week <- Ar2[lon,lat,week,]
+        
+        coef_corr <- cor(ar1.week,ar2.week,use="pairwise.complete.obs",method = "pearson")
+        
+        acc[lon,lat,week] <- coef_corr
+        
+      } # End loop lat
+      
+    }  # End loop lon
+    
+  } # End loop week
+  return(acc)
+}
+#----------------------------------------------------------------------------------------
+# FUncion para separar los leads de un modelo en 4 semanas pero no hace la media
+# (a diferencia de modelmediasemanas)
+SepararSemanas <- function(Ar) {
+  ## Ar: array con dimensiones lon,lat y leads en tercer lugar para separar en semanas de 7 dias
+  
+  # Array a llenar
+  ar.sem <- array(NA, dim = c(dim(Ar)[1:2],4)) 
+  lead = c(1,8,15,22) # Es el lead inicial para cada semana
+  
+  for (w in 1:4) {  # por cada semana
+    ar.model.w = Ar[,,lead[w]:(lead[w]+6)]  # Toma cada semana 
+    ar.sem[,,w] <- ar.model.w
+    
+  } # End loop semanas
+  return(ar.sem)
+}
+#----------------------------------------------------------------------------------------
+GraphLine <- function(DF,Label, Breaks, Linetype, Color) {
+  ## DF: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
+  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
+  # son los valores
+  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
+  ## Linetype: string. Nombre de la columna segun como cambiar los tipos de lineas
+  ## Color: string. Nombre de la columna segun como cambiar los colores de lineas
+  
+  library(ggplot2)
+  library(data.table)
+  
+  DF = as.data.table(DF)
+  setnames(DF, old = Linetype,new = "region")
+  setnames(DF, old = Color,new = "model")
+  paleta = c("cadetblue2","tomato2","lightgoldenrod1","dodgerblue3","darkorange1",
+             "darkolivegreen2","black")
+  
+g <-  ggplot(DF,aes(x = LEADS, y = media, linetype = region,size=model)) +
+    geom_line(aes(color = model)) +
+    scale_color_manual(name=Color,values = paleta) +
+    scale_linetype_manual(name = Linetype,values = c("solid","dotdash")) +
+    scale_size_manual(values = c(rep(0.5,6),1),guide = 'none') + # que la ultima linea sea mas gruesa
+  
+  scale_y_continuous(Label,breaks = Breaks) +
+    
+    theme(legend.key = element_rect(fill = "transparent")) +
+    theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) 
+  
+  # if (Facet!="") { # si agregas una separacion extra para un grafico mas
+  #   g + facet_grid( .~ get(Facet) )
+  #   
+  # }
+
+return(g)
+}
+
+
+
+
+
 #----------------------------------------------------------------------------------------
