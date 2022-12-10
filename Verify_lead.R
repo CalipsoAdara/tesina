@@ -104,6 +104,8 @@ SP <- data.frame(x_coords = c(293,289,290,293,298,293),
 
 SACZ <- data.frame(x_coords = c(305,305,312,319,323,305),
                    y_coords = c(-10,-20,-24,-25,-10,-10))
+saveRDS(SP, "./poligonos/SP.rds")
+saveRDS(SACZ, "./poligonos/SACZ.rds")
 
 # cargo datos
 df = data.frame()
