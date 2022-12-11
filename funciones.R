@@ -827,6 +827,15 @@ DTPromEspacPesado <- function(DF,Variable,Grupo,Lat) {
    
   }
   
+  if (length(Grupo)==4) {  # cuatro columnas de condicion
+    promedio = dt[,list(media=mean(varlat,na.rm=TRUE)),by=.(get(Grupo[1]),get(Grupo[2]),get(Grupo[3]),get(Grupo[4]))]
+    setnames(promedio, "get", Grupo[1])
+    setnames(promedio, "get.1", Grupo[2])
+    setnames(promedio, "get.2", Grupo[3])
+    setnames(promedio, "get.3", Grupo[4])
+    
+  }
+  
 
   
   return(promedio)
@@ -1577,4 +1586,41 @@ return(g)
 
 
 
+#----------------------------------------------------------------------------------------
+GraphLineFases <- function(Data, X, Y, ALPHA, SIZE, COLOR, Facet, EjeX, EjeY)  {
+  ## Data: data frame con los datos
+  ## X, Y: string con los nombres de las columnas que seran el ejex y ejey 
+  ## Alpha: string con la columna que cambiara la transparencia 
+  ## SIZE, COLOR : idem alpha pero con el tamaño y color
+  # esta seteado para el que ultimo valor (7 = MME) sea el mas grande y con menor transparencia
+  ## Facet: nombre de la columna por el cual separar 
+  ## EJex, Ejey: nombres para los ejes
+  
+  # paleta
+  p = c("black","darkolivegreen4","indianred2","steelblue1","darkorange")
+  ggplot(data = Data, aes(x = get(X), y = get(Y), alpha = get(ALPHA),size = get(SIZE), color = get(COLOR)))+
+    geom_line(aes(color=get(COLOR))) +
+    #scale_color_brewer(palette="Set1")+
+    scale_color_manual(values = p) +
+    scale_alpha_manual(values = c(rep(0.15,6),1), guide= "none") +
+    scale_size_manual(values = c(1,rep(0.5,4)), guide= "none") +
+    
+    facet_grid(.~get(Facet)) +   ## segun que 
+    
+    # nombre de los ejes
+    xlab(EjeX) + ylab(EjeY) +
+    theme(legend.title = element_blank()) +
+    
+    theme(legend.key = element_rect(fill = "transparent")) +
+    theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) 
+  
+}
 #----------------------------------------------------------------------------------------
