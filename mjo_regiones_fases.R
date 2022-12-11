@@ -149,9 +149,13 @@ gacc = GraphLineFases(Data = dt_acc, X = "LEADS", Y = "media", ALPHA = "MODEL",
 grmse = GraphLineFases(Data = dt_rmse, X = "LEADS", Y = "media", ALPHA = "MODEL",
                SIZE = "BIN",COLOR = "BIN", Facet = "REGION", EjeX = "LEADS" , EjeY = "RMSE" )
 
+# Voy a limitar el eje y a solo 28 leads
+gacc <- gacc + xlim(c(0,28))
+grmse <- grmse + xlim(c(0,28))
+
 # GUARDO
-ggsave(filename="./MJO/fase/acc_Region_fase.png",plot=gacc,width = 15, height = 10)
-ggsave(filename="./MJO/fase/rmse_Region_fase.png",plot=grmse,width = 15, height = 10)
+ggsave(filename="./MJO/fase/acc_Region_fase.png",plot=gacc,width = 15, height = 7)
+ggsave(filename="./MJO/fase/rmse_Region_fase.png",plot=grmse,width = 15, height = 7)
 
 
 
