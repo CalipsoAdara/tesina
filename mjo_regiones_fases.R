@@ -143,28 +143,42 @@ dt = rbind(prom,ref)
 dt_acc = dt[L1 == "acc" ]
 dt_rmse = dt[L1 == "rmse" ]
 
-# Grafico
-gacc = GraphLineFases(Data = dt_acc, X = "LEADS", Y = "media", ALPHA = "MODEL",
-               SIZE = "BIN",COLOR = "BIN", Facet = "REGION", EjeX = "LEADS" , EjeY = "ACC" )
-grmse = GraphLineFases(Data = dt_rmse, X = "LEADS", Y = "media", ALPHA = "MODEL",
-               SIZE = "BIN",COLOR = "BIN", Facet = "REGION", EjeX = "LEADS" , EjeY = "RMSE" )
+#-------------------------------------
+# Lo que puedo hacer es, para cada lead, encontrar el valor mayor/menor sin contar MME 
+# asignarlo a una columna distinta
 
-# Voy a limitar el eje y a solo 28 leads
-gacc <- gacc + xlim(c(0,28))
-grmse <- grmse + xlim(c(0,28))
+# Hago el maximo y minimo sin MME
+max = dt_acc[MODEL != "MME", list(ymax=(max(media,na.rm = T))), by=.(LEADS,REGION)]
+min = dt_acc[MODEL != "MME", list(ymin=(min(media,na.rm = T))), by=.(LEADS,REGION)]
+Nube = merge.data.table(max,min)
+NubeACC=merge.data.table(dt_acc[MODEL=="MME"], Nube, by=c("LEADS","REGION"))
+max = dt_rmse[MODEL != "MME", list(ymax=(max(media,na.rm = T))), by=.(LEADS,REGION)]
+min = dt_rmse[MODEL != "MME", list(ymin=(min(media,na.rm = T))), by=.(LEADS,REGION)]
+Nube = merge.data.table(max,min)
+NubeRMSE=merge.data.table(dt_rmse[MODEL=="MME"], Nube, by=c("LEADS","REGION"))
+#------------------------------------
+
+# Grafico
+gacc <- GraphLineRibbon(Data=NubeACC, X = "LEADS", Y = "media", Ymin = "ymin", Ymax = "ymax",
+                        SIZE = "BIN",COLOR = "BIN", Facet = "REGION", EjeX = "LEADS" , EjeY = "ACC" )
+grmse <- GraphLineRibbon(Data=NubeRMSE, X = "LEADS", Y = "media", Ymin = "ymin", Ymax = "ymax",
+                        SIZE = "BIN",COLOR = "BIN", Facet = "REGION", EjeX = "LEADS" , EjeY = "ACC" )
+
+
+# agrego linea en el cero
+gacc <- gacc + geom_hline(yintercept = 0, color = "grey58", size = 0.5, linetype = "dashed")
+
 
 # GUARDO
-ggsave(filename="./MJO/fase/acc_Region_fase.png",plot=gacc,width = 15, height = 7)
-ggsave(filename="./MJO/fase/rmse_Region_fase.png",plot=grmse,width = 15, height = 7)
+ggsave(filename="./MJO/fase/acc_Region_fase.png",plot=gacc,width = 10, height = 5)
+ggsave(filename="./MJO/fase/rmse_Region_fase.png",plot=grmse,width = 10, height = 5)
 
 
 
 
 
-
-p = c("black","darkolivegreen4","indianred2","steelblue1","darkorange")
-
-tube = c("#00782A","#0098D4","#F3A9BB","#E32017","#003688","#FFD300","#000000")
 
 # La diferencia con usar fase sin que sea inicial tiene peores scores. ACC bajo y rmse altos. 
+
+
 
