@@ -4,6 +4,18 @@
 p <- function(..., sep='') {
   paste(..., sep=sep, collapse=sep)
 }
+#-----------------------------------------------------------------------------------------
+MarianoTheme <- theme(legend.key = element_rect(fill = "transparent"),
+                      axis.text=element_text(size=12),
+                      strip.text.x = element_text(size = 12, colour = "black"),
+                      strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"),
+                      panel.background = element_rect(fill = "white",colour = "grey70",size = 2, linetype = "solid"),
+                      panel.grid.major = element_line(size = 0.5, linetype = 'solid',colour = "grey86"),
+                      panel.grid.minor = element_line(size = 0.25, linetype = 'solid',colour = "grey86"))                    
+#------------------------------------------------------------------------------------------
+# Paletas de colores que me gustan
+p = c("black","darkolivegreen4","indianred2","steelblue1","darkorange")
+tube = c("#00782A","#0098D4","#F3A9BB","#E32017","#003688","#FFD300","#000000")
 
 # -----------------------------------------------------------------------------------------
 # Funcion que obtiene las dimensiones de un archivo netcdf y devuelve un vector con dichas
@@ -1621,6 +1633,33 @@ GraphLineFases <- function(Data, X, Y, ALPHA, SIZE, COLOR, Facet, EjeX, EjeY)  {
                                           colour = "grey86"), 
           panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                           colour = "grey86")) 
+  
+}
+#----------------------------------------------------------------------------------------
+# Funcion para graficar lineas con area alrededor de las lineas. Se necesita una columa extra
+# con maximo y minimo del area para cada elemento del eje x
+GraphLineRibbon <- function(Data,Var, X, Y, Ymin, Ymax, EjeX, EjeY, SIZE, COLOR, Facet) {
+  ## Data: data frame
+  ## X: str con el nombre de la columna del ejex
+  ## Y: str con el nombre de la columna del ejeY
+  ## Ymin: str con el nombre de la columna de limite inferior
+  ## Ymax: str con el nombre de la columna de limite superior
+  ## SIZE, COLOR : idem alpha pero con el tamaño y color
+  # esta seteado para el que ultimo valor (7 = MME) sea el mas grande 
+  ## Facet: nombre de la columna por el cual separar 
+  ## EJex, Ejey: nombres para los ejes
+  
+  ggplot(Data) +
+    geom_ribbon(aes(x = get(X), ymin=get(Ymin), ymax=get(Ymax)), fill="grey88")+
+    geom_line( aes(x = get(X), y = get(Y),size = get(SIZE), color = get(COLOR))) +
+    scale_color_manual(values = p) +
+    scale_alpha_manual(values = c(rep(0.15,6),1), guide= "none") +
+    scale_size_manual(values = c(1,rep(0.5,4)), guide= "none") +
+    facet_grid(.~get(Facet)) +
+    MarianoTheme +
+    # nombre de los ejes
+    xlab(EjeX) + ylab(EjeY) +
+    theme(legend.title = element_blank())  # saca el nombre de la leyenda
   
 }
 #----------------------------------------------------------------------------------------
