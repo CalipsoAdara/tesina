@@ -10,13 +10,13 @@ rm(list=ls())
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Seteo el directorio
-setwd("/home/lucia.castro/SubX_processed_Rdata")
+setwd("/home/lucia.castro/SubX_processed_Rdata/model")
 #--------------------------------------------------------------------------------------------------------
 # Tabla de inicios activos e inactivos segun el modelo
 
 # Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmm.rds")
-df_eventos <- readRDS("./MJO/df_eventos.rds")
+df_rmm <- readRDS("./MJO/df_rmmOA.rds")
+df_eventos <- readRDS("./MJO/df_eventosOA.rds")
 fechas_act <- as.character(df_rmm$DATE)
 groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')     
 Bins = levels(df_eventos$Bin)
@@ -29,7 +29,7 @@ stdt_fases <-c()    # de cada fase MJO
 for (g in 1:length(groups)) {
   grupo = groups[g]
   # Busco que startdates coinciden con los eventos activos
-  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_ONDEFM.rds"))
+  TargetDate <- readRDS(paste0("./targetdate_",grupo,"_OA.rds"))
   startdate = dimnames(TargetDate)$startdate
   posMJO = startdate %in% fechas_act
   
