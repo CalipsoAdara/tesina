@@ -57,75 +57,28 @@ Predictibilidad <- function(Modelo, Ensamble) {
     }
     return(acc)
 }
-#------------------------------------------------------------------------------------------------
-CompletarFaltante <- function(Target, Stdt, ModeloObjetivo) {
-  ## Target: Vector logico
-  ## Stdt: Vector logico
-  ## ModeloObjetico: array de 3 dimensiones que deberia completarse con 66,76 y 28 lead
-  
-  # Si el modelo no alcanza a llenar los 28 dias del MME, llenar el resto con NA
-  if (sum(Target)<28) {
-    faltante = 28 - sum(Target)
-    mod.faltante = array(NA, dim = c(66,76,faltante))
-    
-    # PRUEBA: QUE PASA CUANDO NO HAY MODELO ESA SEMANA
-    if (sum(Stdt)==0){
-      #print(paste("La semana ",startweek[1]," no tiene el modelo",models[mod]))
-      
-      modelo_objetivo = mod.faltante
-    }else{
-      #print(paste("La semana ",startweek[1]," le faltan dias del modelo",models[mod]))
-      
-      modelo_objetivo = abind(ModeloObjetivo,mod.faltante)
-    }
-  }
-  
-  # Si el modelo esta completo no hacer nada
-  if (sum(Target)==28) {
-     modelo_objetivo = ModeloObjetivo
-  }
-  return(modelo_objetivo)
-}
+
 #----------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------
 # Cargo los datos 
 models = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL")
 nmodels = length(models)
 
-ESRL <- readRDS("model_ESRL_ONDEFM.rds")
-ECCC <- readRDS("model_ECCC_ONDEFM.rds")
-EMC <- readRDS("model_EMC_ONDEFM.rds")
-GMAO <- readRDS("model_GMAO_ONDEFM.rds")
-RSMAS <- readRDS("model_RSMAS_ONDEFM.rds")
-NRL <- readRDS("model_NRL_ONDEFM.rds")
-targetdate_ESRL <- readRDS("targetdate_ESRL_ONDEFM.rds")
-targetdate_ECCC <- readRDS("targetdate_ECCC_ONDEFM.rds")
-targetdate_EMC <- readRDS("targetdate_EMC_ONDEFM.rds")
-targetdate_GMAO <- readRDS("targetdate_GMAO_ONDEFM.rds")
-targetdate_RSMAS <- readRDS("targetdate_RSMAS_ONDEFM.rds")
-targetdate_NRL <- readRDS("targetdate_NRL_ONDEFM.rds")
+MODELOS <- list()
+targetdateMODELOS <- list()
+startdateMODELOS <- list()
 
-# startdate de los modelos 
-startdateESRL = as.Date(dimnames(targetdate_ESRL)$startdate)
-startdateECCC = as.Date(dimnames(targetdate_ECCC)$startdate)
-startdateEMC = as.Date(dimnames(targetdate_EMC)$startdate)
-startdateGMAO = as.Date(dimnames(targetdate_GMAO)$startdate)
-startdateRSMAS = as.Date(dimnames(targetdate_RSMAS)$startdate)
-startdateNRL = as.Date(dimnames(targetdate_NRL)$startdate)
+for (m in 1:nmodels) {
+  MODELOS[[m]] <- readRDS(paste0("./model/model_",models[m],"_OA.rds"))
+  targetdateMODELOS[[m]] <- readRDS(paste0("./model/targetdate_",models[m],"_OA.rds"))
+  startdateMODELOS[[m]] <- dimnames(targetdateMODELOS[[m]])$startdate
+}
 
-#
-# Listas de todos los modelos 
-MODELOS <- list(ESRL, ECCC, EMC, GMAO, RSMAS, NRL)
 
-targetdateMODELOS <- list(targetdate_ESRL, targetdate_ECCC, targetdate_EMC, 
-                          targetdate_GMAO, targetdate_RSMAS,targetdate_NRL)
-startdateMODELOS <- list(startdateESRL, startdateECCC, startdateEMC,
-                     startdateGMAO, startdateRSMAS, startdateNRL)
-
-# Obtengo el periodo de 1999 a 2014 con solo octubre a marzo
+# Obtengo el periodo de 1999 a 2014 con solo octubre a abril
 periodo = seq.Date(as.Date("1999-01-01"), as.Date("2014-12-31"), by = 1)
-OM = c(1,2,3,10,11,12)
-oct_mar <- which(month(periodo) %in% OM) # posiciones donde el mes cae entre Octubre a Marzo
+OM = c(1,2,3,4,10,11,12)
+oct_mar <- which(month(periodo) %in% OM) # posiciones donde el mes cae entre Octubre a Abril
 periodo_OM <- periodo[oct_mar]
 
 # Obtengo sabados y sus respectivos viernes siguientes para el periodo
@@ -158,7 +111,7 @@ MME <- array(NA, dim = c(66,76,28,nmodels,length(sabadoMME)))
 for (i in 1:length(sabadoMME)) { # Por cada sabado
   
   # Semana en cuestion del MME
-  startweek = seq.Date(sabadoMME[i]-7,sabadoMME[i]-1,by=1) #desde el sabado anterior al viernes
+  startweek = as.character(seq.Date(sabadoMME[i]-7,sabadoMME[i]-1,by=1)) #desde el sabado anterior al viernes
   
   for (mod in 1:length(MODELOS)) { # por cada modelo
     
@@ -218,8 +171,8 @@ dimnames(MME_pro) <- list("lon" = seq(265,330,1), "lat" = rev(seq(-60,15,1)),
                           "lead" = 1:28, "startdate"  = as.character(sabadoMME))
 
 # Todo listo para empezar la verificación octubre-marzo. Guardo para limpiar y comenzar la verificación.
-saveRDS(MME_pro,paste0("./MME_OM.rds"))
-saveRDS(targetdateMME,paste0("./targetdate_MME_ONDEFM.rds"))
+saveRDS(MME_pro,paste0("./model/MME_OA.rds"))
+saveRDS(targetdateMME,paste0("./model/targetdate_MME_OA.rds"))
 
 #-------------------------------------------------------------------------------------------------
 # Predictibilidad
@@ -308,6 +261,7 @@ saveRDS(predictibilidad, "./predict.rds")
 # G R A F I C O S ------------------------------------
 
 predic <- readRDS("predict.rds")
+predic <- predic*100
 
 # convierto a data frame para las 4 weeks
 dimnames(predic) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
@@ -317,10 +271,10 @@ dimnames(predic) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
                                     rep("Week 4",7)))
 df <- reshape2::melt(predic)
 colnames(df) <- c("x","y","week","z")
-g<-GraphDiscreteMultiple(Data=df,Breaks = seq(0,1,0.2),Label = "ACC",Paleta = "Greens",Direccion = 1)
-g <- g + ggtitle(paste0("Predictibilidad  \ntasa (99-14, Oct-Mar)"))
+g<-GraphDiscreteMultiple(Data=df,Breaks = seq(0,100,10),Label = "ACC(%)",Paleta = "Greens",Direccion = 1)
+g <- g + ggtitle(paste0("Predictibilidad  \nT2M (99-14, Oct-Apr)"))
 
-ggsave(filename = "./predic.png",plot=g,width = 10, height = 4)
+ggsave(filename = "./predic_porcentaje.png",plot=g,width = 10, height = 4)
 
 for (m in 1:nmodels) {
   
