@@ -148,7 +148,7 @@ rep_str = c('GMAO'='GMAO-GEOS_V2p1','RSMAS'='RSMAS-CCSM4','ESRL'='ESRL-FIMr1p1',
 dt$model <- str_replace_all(dt$model, rep_str)
 
 # Para que plotee los leads de forma correcta los convierto en factors
-dt$lead =  factor(dt$lead, levels=c('1-7','8-14','15-21','CPC'))
+dt$lead =  factor(dt$lead, levels=c('15-21','8-14','1-7','CPC'))
 dt$model =  factor(dt$model, levels=c('GMAO-GEOS_V2p1','RSMAS-CCSM4','ESRL-FIMr1p1',
                                       'ECCC-GEM','NRL-NESM','EMC-GEFS','MME'))
 
@@ -158,7 +158,7 @@ for (w in 1:3) {
   titulo = paste("T2MA OLA DE CALOR\n",fechaola[w])
   fig = GraphGrupos(Data = dt[week == weeklabel[w]], Paleta = "RdBu", Direccion = -1,
               Breaks = seq(-3,3,1), Label = "°C", Titulo = titulo)
-  ggsave(filename=paste0("./ola/temp_",weeklabel[w],".png"),
+  ggsave(filename=paste0("./ola/temp2_",weeklabel[w],".png"),
          plot=fig,width = 10, height = 15)
 }
 
