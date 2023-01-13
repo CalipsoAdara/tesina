@@ -5,7 +5,7 @@
 #-----------------------------------------------------------------------------------------------------------------------
 rm(list=ls())
 
-setwd("/home/lucia.castro/")
+setwd("/home/lucia.castro/SubX_processed_Rdata/model/viernes/")
 
 # Call libraries to be used
 library("ncdf4")
@@ -79,8 +79,8 @@ ModelMediaSemanal <- function(Modelo, PronoDate){
 #---------------------------------------------------------------------------------------
 #  Main Program  
 #---------------------------------------------------------------------------------------
-ar.model = readRDS("/home/lucia.castro/SubX_processed_Rdata/MME_OM.rds")
-targetdate = readRDS("/home/lucia.castro/SubX_processed_Rdata/targetdate_MME_ONDEFM.rds")
+ar.model = readRDS("model_MME_OA.rds")
+targetdate = readRDS("targetdate_MME_OA.rds")
 ar.anom = readRDS("/pikachu/datos4/Obs/t2m_cpc_daily/t2manom_NOAA.rds")
 
 # La cantidad de fechas de pronosticos desde Oct a Mar en el periodo del modelo
@@ -127,7 +127,7 @@ for (week in 1:4) {
 #-------------------------------------------------
 # Busco el rho1 para calcular el tamaño de muestra efectivo y obtener significancia
 # Autocorrelacion con lag 1 en las observaciones
-rho1 = readRDS(file = "./SubX_processed_Rdata/rho1.rds")
+rho1 = readRDS(file = "/home/lucia.castro/SubX_processed_Rdata/model/rho1.rds")
 
 # Calculo estadistico de prueba
 
@@ -175,7 +175,7 @@ g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.1), Label = "
 
 
 fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob("SubX MME T2MA (99-14, Oct-Mar)",gp=gpar(fontsize=13,font=3)))
-ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/scores_map_MME.png",plot=fig,width = 10, height = 11)
+ggsave(filename="/home/lucia.castro/SubX_processed_Rdata/model/viernes/scores_map_MME.png",plot=fig,width = 10, height = 11)
 
 #---------------------------------------------------------------------------------------
 #  Guardado de datos
@@ -189,6 +189,6 @@ dimnames(model_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas,
 dimnames(anom_media_semanal) <- list("lon" = lon,"lat" = lat, "start" = fechas, 
                                      "week" = c("Week 1","Week 2","Week 3","Week 4"))
 metrics <- list(rmse,me,acc,var)
-saveRDS(model_media_semanal, paste0("./SubX_processed_Rdata/modelweek_MME.rds"))
-saveRDS(anom_media_semanal, paste0("./SubX_processed_Rdata/obsweek_MME.rds"))
-saveRDS(metrics, "./SubX_processed_Rdata/metrics_MME.rds")
+saveRDS(model_media_semanal, paste0("./modelweek_MME.rds"))
+saveRDS(anom_media_semanal, paste0("./obsweek_MME.rds"))
+saveRDS(metrics, "./metrics_MME.rds")

@@ -28,18 +28,13 @@ lat = dimnames(ar.anom)$lat
 # Acomodo datos para hacer medias semanales
 # En este caso voy a hacer medias semanales segun las semanas del mme
 dias = dimnames(ar.anom)$day
-targetdateMME= readRDS("./SubX_processed_Rdata/model/targetdate_MME_OA.rds")
+targetdateMME= readRDS("./SubX_processed_Rdata/model/viernes/targetdate_MME_OA.rds")
 inisemOM <- as.Date(dimnames(targetdateMME)$startdate)
 
 # Poligonos. Lon de menor a mayor, el primer punto se repite para cerrar el poligono
-SP <- data.frame(x_coords = c(291,288,291,298,291),
-                 y_coords = c(-30,-40,-53,-40,-30))
 
-SACZ <- data.frame(x_coords = c(305,305,310,321,305),
-                   y_coords = c(-10,-25,-30,-10,-10))
-
-
-
+SP <- readRDS("./SubX_processed_Rdata/model/poligonos/SP.rds")
+SACZ <- readRDS("./SubX_processed_Rdata/model/poligonos/SACZ.rds")
 
 # Variable a guardar
 anom.sem = array(NA, dim = c(66,76,7,length(inisemOM)))
@@ -68,9 +63,9 @@ obs_sacz = df.anom[obssacz,]
 obs_sp = df.anom[obssp,]
 
 # Promedio en lat y long
-med_obs_sacz = DTPromEspacPesado(obs_sacz, "value", "semana")
-med_obs_sp = DTPromEspacPesado(obs_sp, "value", "semana")
-med_obs = DTPromEspacPesado(df.anom, "value", "semana")
+med_obs_sacz = DTPromEspacPesado(obs_sacz, "value", "semana", Lat = "lat")
+med_obs_sp = DTPromEspacPesado(obs_sp, "value", "semana", Lat = "lat")
+med_obs = DTPromEspacPesado(df.anom, "value", "semana", Lat = "lat")
 
 # Encontrar semanas debajo del p10 y por encima del p90
 fecha_sacz = FechasPercentiles(med_obs_sacz,med_obs_sacz$media)
@@ -94,4 +89,4 @@ Reduce(intersect, p90)
 
 
 # Creo archivo csv 
-write.csv(extremo, "./SubX_processed_Rdata/model/ext/extMME.csv")
+write.csv(extremo, "./SubX_processed_Rdata/model/viernes/ext/extMME.csv")

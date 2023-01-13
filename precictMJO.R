@@ -38,7 +38,7 @@ for (m in 1:nmodels) {
 }
 
 # MME
-targetdateMME <- readRDS(paste0("./targetdate_MME_OA.rds"))
+targetdateMME <- readRDS(paste0("./viernes/targetdate_MME_OA.rds"))
 sabadosMME <- dimnames(targetdateMME)$startdate
 
 # MJO
@@ -59,7 +59,16 @@ targetdateMMEMJO <- targetdateMME[,sabadosMME %in% fechas_act]
 # correlacionar un modelo contra la media del ensamble formada por el resto de los modelos, 
 # esto repetirlo con cada modelo y sacar el promedio de esa correlación
 
+#----------- VERSION NUEVA
+predicmjo <- EnsamblesPredictiblidad(Modelos=MODELOS,
+                                       TgdtMod=targetdateMODELOS, 
+                                       StdtMod=startdateMODELOS, 
+                                       FechEnsam = sabMJO,
+                                       TgdtEnsam = targetdateMMEMJO,
+                                       FilePath = "./viernes/MJO/predic/act")
+saveRDS(predicmjo , "./viernes/MJO/predic/predictmjo.rds")
 
+#----------- VERSION ANTERIOR
 for (model in 1:nmodels) {
   
   # Tomo el modelo a comparar contra la EM del resto de los mod
@@ -174,10 +183,10 @@ predicnomjo <- EnsamblesPredictiblidad(Modelos=MODELOS,
                                        StdtMod=startdateMODELOS, 
                                        FechEnsam = sabNOMJO,
                                        TgdtEnsam = targetdateMMENOMJO,
-                                       FilePath = "./MJO/predic")
+                                       FilePath = "./viernes/MJO/predic/inact")
 
 # Guardo
-saveRDS(predicnomjo, "./MJO/predic/predictnomjo.rds")
+saveRDS(predicnomjo, "./viernes/MJO/predic/predictnomjo.rds")
 #----------- VERSION ANTERIOR
 for (model in 1:nmodels) {
   
@@ -292,7 +301,7 @@ for (b in bin) {
   f1 = substr(b,5,5)
   f2 = substr(b,6,6)
   # Fechas de ese bin
-  fechas_bin <- df_rmm[FASE == f1 |FASE == f2 ,.(DATE)]
+  fechas_bin <- df_rmm[Bin==b,.(DATE)]
   fechas_bin <- as.character(fechas_bin$DATE)
   
   # Busco que sabados coinciden con las fechas del bin
@@ -306,10 +315,10 @@ for (b in bin) {
                           StdtMod=startdateMODELOS, 
                           FechEnsam = sabBin,
                           TgdtEnsam = targetdateMMEBIN,
-                          FilePath = paste0("./MJO/predic/bin",b))
+                          FilePath = paste0("./viernes/MJO/predicBin/bin",b))
   
   # Guardo
-  saveRDS(predic_bin, paste0("./MJO/predic/predic_bin",b,".rds"))
+  saveRDS(predic_bin, paste0("./viernes/MJO/predicBin/predic_bin",b,".rds"))
   
   
 }
@@ -321,11 +330,11 @@ for (b in bin) {
 # SI ES ACT - TOTAL DONDE SEA POSITIVO ----------> APORTA MJO
 
 # cargo predictibilidad no activa
-predtotal <- readRDS("./MJO/predic/predictnomjo.rds")
+predtotal <- readRDS("./viernes/MJO/predic/predictnomjo.rds")
 
 for (b in bin) {
   # Cargo datos de predictibilidad del bin
-  predbin <- readRDS(paste0("./MJO/predic/predic_bin",b,".rds"))
+  predbin <- readRDS(paste0("./viernes/MJO/predicBin/predic_bin",b,".rds"))
   
   # Resto
   pred_diff <- predbin - predtotal
@@ -344,5 +353,5 @@ for (b in bin) {
   g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.4,0.4,0.1),Label = "ACC",Paleta = "RdBu",Direccion = -1)
   g <- g + ggtitle(paste0("Predictibilidad SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Abr)"))
   
-  ggsave(filename = paste0("./MJO/predic/predic_diff",b,".png"),plot=g,width = 10, height = 4)
+  ggsave(filename = paste0("./viernes/MJO/predicBin/predic_diff",b,".png"),plot=g,width = 10, height = 4)
 }
