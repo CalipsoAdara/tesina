@@ -81,10 +81,10 @@ OM = c(1,2,3,4,10,11,12)
 oct_mar <- which(month(periodo) %in% OM) # posiciones donde el mes cae entre Octubre a Abril
 periodo_OM <- periodo[oct_mar]
 
-# Obtengo sabados y sus respectivos viernes siguientes para el periodo
+# Obtengo viernes  para el periodo
 sabado = periodo_OM[weekdays(periodo_OM)=="Saturday"][-1] # Borra el primer sabado (1999-01-02) que no tiene semana anterior 
 
-# Los sabados son la fecha de inicio del multimodelo. En la semana anterior a ese sabado busco los
+# Los viernes son la fecha de inicio del multimodelo. En la semana anterior a ese sabado busco los
 # modelos inicializados. La semana objetivo empieza el sabado y termina el viernes siguiente.
 
 # Quito los sabados que caigan entre 1 y 7 de octubre ya que no tendran modelos inicializados
@@ -92,8 +92,11 @@ sabado = periodo_OM[weekdays(periodo_OM)=="Saturday"][-1] # Borra el primer saba
 oct1_7 = c("10-01","10-02","10-03","10-04","10-05","10-06","10-07")
 sabadoMME = sabado[!substr(sabado,6,10) %in% oct1_7]  # Asigna TRUE donde se cumple la condicion y "!" lo revierte
 
+# El dia de inicio es el viernes
+viernesMME = sabadoMME-1
+
 # Array de targetday del multimodelo
-targetdateMME = array(NA,dim = c(28,length(sabadoMME)), dimnames = list("lead"=1:28,"startdate" = as.character(sabadoMME)))
+targetdateMME = array(NA,dim = c(28,length(viernesMME)), dimnames = list("lead"=1:28,"startdate" = as.character(viernesMME)))
 # Recorre todas las fechas de pronosticos
 for (sab in 1:length(sabadoMME)) {
   targetdateMME[,sab] <- as.character(sabadoMME[sab] +(0:27))
@@ -105,10 +108,10 @@ for (sab in 1:length(sabadoMME)) {
 # Promediar modelos
 
 # array a completar 
-MME <- array(NA, dim = c(66,76,28,nmodels,length(sabadoMME)))
+MME <- array(NA, dim = c(66,76,28,nmodels,length(viernesMME)))
 
 
-for (i in 1:length(sabadoMME)) { # Por cada sabado
+for (i in 1:length(viernesMME)) { # Por cada viernes
   
   # Semana en cuestion del MME
   startweek = as.character(seq.Date(sabadoMME[i]-7,sabadoMME[i]-1,by=1)) #desde el sabado anterior al viernes
@@ -168,11 +171,11 @@ MME_pro = apply(MME, c(1,2,3,5), mean, na.rm = T)
 
 # Nombro dimensiones
 dimnames(MME_pro) <- list("lon" = seq(265,330,1), "lat" = rev(seq(-60,15,1)),
-                          "lead" = 1:28, "startdate"  = as.character(sabadoMME))
+                          "lead" = 1:28, "startdate"  = as.character(viernesMME))
 
 # Todo listo para empezar la verificación octubre-marzo. Guardo para limpiar y comenzar la verificación.
-saveRDS(MME_pro,paste0("./model/MME_OA.rds"))
-saveRDS(targetdateMME,paste0("./model/targetdate_MME_OA.rds"))
+saveRDS(MME_pro,paste0("./model/viernes/model_MME_OA.rds"))
+saveRDS(targetdateMME,paste0("./model/viernes/targetdate_MME_OA.rds"))
 
 #-------------------------------------------------------------------------------------------------
 # Predictibilidad
