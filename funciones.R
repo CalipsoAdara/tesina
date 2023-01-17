@@ -1135,7 +1135,7 @@ get_legend<-function(myggplot){
 }
 # ---------------------------------------------------------------------------------------------
 # Funcion para graficar las metricas de MJO en mjo_mod y mjo_fases con una leyenda condicional
-GraphMJOCond <- function(Data, Breaks, Titulo, Paleta, Direccion){
+GraphMJOCond <- function(Data, Breaks, Titulo, Paleta, Direccion, Row, Col){
   ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
   # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
   # son los valores
@@ -1143,7 +1143,7 @@ GraphMJOCond <- function(Data, Breaks, Titulo, Paleta, Direccion){
   ## Titulo: character vector con el titulo del grafico
   ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
   ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
-  ## LabelBreaks: un vector con las
+  ## Row, Col: string con las columnas segun hacer facet grid
   
   # Cargo paquetes
   library("ggplot2")
@@ -1176,7 +1176,7 @@ GraphMJOCond <- function(Data, Breaks, Titulo, Paleta, Direccion){
     geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
     theme(axis.text=element_text(size=12))+
     theme(strip.text.x = element_text(size = 12, colour = "black"))+
-    facet_grid( mod~ bin)  +   # esto es nuevo row ~ col
+    facet_grid( get(Row) ~ get(Col))  +   # esto es nuevo row ~ col
     
     theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
     theme(panel.background = element_rect(fill = "white",colour = "grey70",
@@ -1195,6 +1195,65 @@ GraphMJOCond <- function(Data, Breaks, Titulo, Paleta, Direccion){
   grid.arrange(g, legend,
                ncol=1, nrow = 2, 
                widths = c(3), heights = c( 2.5,0.2))
+  
+}
+#----------------------------------------------------------------------------------------------
+# Funcion para graficar las metricas segun grupos. Sin leyenda condicional
+GraphMet <- function(Data, Breaks, Titulo, Paleta, Direccion, Row, Col){
+  ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
+  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
+  # son los valores
+  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
+  ## Titulo: character vector con el titulo del grafico
+  ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
+  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
+  ## Row, Col: string con las columnas segun hacer facet grid
+  
+  # Cargo paquetes
+  library("ggplot2")
+  library("maps")
+  library("RColorBrewer")
+  
+  # Seteo los parametros de mapa y gradiente 
+  mapa<-map_data("world2") 
+  min <- min(Data$value, na.rm = T)
+  max <- max(Data$value, na.rm = T)
+  Data$value=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
+  
+  # Aqui extiendo un poco la escala para que cubra todo
+  fillbreaks = Breaks
+  fillbreaks[length(Breaks)] <- max(Breaks)*1.1
+  fillbreaks[1] <- min(Breaks)*1.1
+  
+  # Grafico en si 
+  g<-  ggplot() +                                          # o Breaks   
+    geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
+    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+    scale_fill_distiller(palette=Paleta,direction= Direccion,
+                         na.value = "transparent",
+                         breaks = Breaks,
+                         limits = c(min(Breaks), max(Breaks)),
+                         guide = guide_colorstrip(),
+                         oob  = scales::squish) +
+    ggtitle(Titulo)  +
+    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+    theme(axis.text=element_text(size=12))+
+    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+    facet_grid( get(Row) ~ get(Col))  +   # esto es nuevo row ~ col
+    
+    theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
+    theme(panel.background = element_rect(fill = "white",colour = "grey70",
+                                          size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "grey86"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "grey86")) +
+    coord_cartesian()  +
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(legend.position  = "none")
+  
+ return(g)
   
 }
 # ---------------------------------------------------------------------------------------------
@@ -1498,6 +1557,31 @@ FactorsModels <- function(DF,Col) {
   # Para que plotee los leads de forma correcta los convierto en factors
   DF$MODEL=  factor(DF$MODEL, levels=c('GMAO-GEOS_V2p1','RSMAS-CCSM4','ESRL-FIMr1p1',
                                                      'ECCC-GEM','NRL-NESM','EMC-GEFS','MME'))
+  return(DF)
+  
+}
+#----------------------------------------------------------------------------------------
+# Funcion para convertir rapido las fases en dataframes, y que los haga 
+# factors para que ordernarlos como yo quiero 
+FactorsFases <- function(DF,Col) {
+  ## DF: Data frame o data table donde cambiar el nombre de las fases
+  ## Col: Nombre de la columna donde estan las fases
+  
+  # Cambio el nombre de modelos por factores
+  # Uso factors para cambiar el orden de los models
+  library(stringr)
+  library(data.table)
+  
+  
+  setnames(DF,old = Col,"FASE")
+  
+  rep_str = c('Fase81'='8-1','Fase23'='2-3','Fase45'='4-5',
+              'Fase67'='6-7')
+  
+  
+  DF$FASE <- str_replace_all(DF$FASE, rep_str)
+  # Para que plotee los leads de forma correcta los convierto en factors
+  DF$FASE=  factor(DF$FASE, levels=c('8-1','2-3','4-5','6-7'))
   return(DF)
   
 }
