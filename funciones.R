@@ -1529,7 +1529,7 @@ EsFechaCercana <- function(Fechas1, Fechas2, Criterio){
   Fechas1 = as.Date(Fechas1)
   Fechas2 = as.Date(Fechas2)
   
-  diferencia = abs(Fechas1-Fechas2)>=Criterio
+  diferencia = abs(Fechas1-Fechas2)<=Criterio
   return(diferencia)
   # Devuelve las posiciones True 
   

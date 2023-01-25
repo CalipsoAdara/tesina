@@ -108,7 +108,7 @@ dt = readRDS("./viernes/dtMMEverif.rds")
 gacc <- GraphMet(Data= dt[metric == "acc"],
              Breaks = seq(-0.5,0.5,0.10),
              Paleta = "RdBu",
-             Direccion = 1 ,
+             Direccion = -1 ,
              Titulo = " Coeficiente de Correlación de Anomalías",
              Row = "week",
              Col = "FASE")
@@ -119,6 +119,8 @@ grmse <- GraphMet(Data= dt[metric == "rmse"],
                  Titulo = "Error Cuadrático Medio",
                  Row = "week",
                  Col = "FASE")
+
+
 
 
 # Ahora agrego leyenda
