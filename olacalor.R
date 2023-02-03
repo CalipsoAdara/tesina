@@ -23,7 +23,7 @@ library(data.table)
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
-svpath = "/home/lucia.castro/SubX_processed_Rdata"
+svpath = "/home/lucia.castro/SubX_processed_Rdata/model/viernes/"
 setwd(svpath)
 
 # Modelos
@@ -54,9 +54,9 @@ for(we in 1:length(olaw)) { # por cada semana del evento
     w = olaw[[we]]
     
     # Cargar datos del modelo (solo el subset nov-dic de 2013)
-    targetdate <- readRDS(paste0("targetdate_",m,"_ONDEFM.rds"))
+    targetdate <- readRDS(paste0("targetdate_",m,"_OA.rds"))
     startdate <- dimnames(targetdate)$startdate
-    mod <- readRDS(paste0("/datos/SubX/mjo.lucia.cas/model_olacalor_",m,".rds"))
+    mod <- readRDS(paste0("model_",m,"_OA.rds"))
     
     for(l in leadbin) { # por cada lead
       # Buscar la inicializacion anterior a la semana del evento
