@@ -158,7 +158,9 @@ saveRDS(dt,"./ext/df_metricEXT.rds")
 df <- readRDS("./ext/df_metricEXT.rds")
 setDT(df)
 
-
+# ---------------
+# ACCC
+#. ---------------
 g10 <- GraphMet(Data = df[per == "P10" & metric == "acc"],
              Breaks = seq(-0.5,0.5,0.1),
              Paleta = "RdBu",
@@ -180,8 +182,32 @@ g <-grid.arrange(g10,g90,
                  widths = c(5,5),
                  heights = c(7))
 
-ggsave("./ext/verifresta_acc.png",g,width = 10, height = 4)
+ggsave("./ext/verifresta_acc.png",g,width = 10, height = 10)
+#----------------------------
+# RMSE
+# --------------------------
+g10 <- GraphMet(Data = df[per == "P10" & metric == "rmse"],
+                Breaks = seq(-0.5,0.5,0.1),
+                Paleta = "RdBu",
+                Direccion = 1,
+                Row = "model",
+                Col = "week",
+                Titulo = "Percentil 10")
 
+g90 <-GraphMet(Data = df[per == "P90" & metric == "rmse"],
+               Breaks = seq(-0.5,0.5,0.1),
+               Paleta = "RdBu",
+               Direccion = 1,
+               Row = "model",
+               Col = "week",
+               Titulo = "Percentil 90")
+
+g <-grid.arrange(g10,g90,                                
+                 ncol = 2, 
+                 widths = c(5,5),
+                 heights = c(7))
+
+ggsave("./ext/verifresta_rmse.png",g,width = 10, height = 10)
 
 
 
