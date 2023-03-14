@@ -24,8 +24,9 @@ library("grid")
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Directorio
-svpath = "/home/lucia.castro/SubX_processed_Rdata/model"
-setwd(svpath)
+wd = "/home/lucia.castro/SubX_processed_Rdata/model/viernes"
+svpath = "/home/lucia.castro/SubX_processed_Rdata/model/viernes/scores"
+setwd(wd)
 #---------------------------------------------------------------------------------------
 #  functions of verification metrics 
 #---------------------------------------------------------------------------------------
@@ -107,9 +108,8 @@ for (m in 1:nmodels) { # para cada modelo
   
   
   # Calculo las distintas métricas por cada lon/lat/targetweek
-  dif = (anom_media_semanal - model_media_semanal)
+  dif = (model_media_semanal - anom_media_semanal)
   me = apply(dif, c(1,2,4),FUN = mean, na.rm = TRUE)
-  mae = apply(abs(dif), c(1,2,4), FUN = mean, na.rm = TRUE) 
   rmse = sqrt(apply(dif^2,c(1,2,4), FUN = mean, na.rm = TRUE))
   desvio = apply(anom_media_semanal,c(1,2,4),FUN = sd, na.rm = TRUE)
   var = 1-(rmse/desvio)
@@ -138,7 +138,7 @@ for (m in 1:nmodels) { # para cada modelo
   } # End loop week
   
  
-  rho1 = readRDS(file = "/home/lucia.castro/SubX_processed_Rdata/rho1.rds")
+  rho1 = readRDS(file = "/home/lucia.castro/SubX_processed_Rdata/model/rho1.rds")
   
   # Calculo estadistico de prueba
   
