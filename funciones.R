@@ -1628,7 +1628,8 @@ SepararSemanas <- function(Ar) {
   
   for (w in 1:4) {  # por cada semana
     ar.model.w = Ar[,,lead[w]:(lead[w]+6)]  # Toma cada semana 
-    ar.sem[,,w] <- ar.model.w
+    ar.mean.w=apply(ar.model.w, c(1,2), mean) # hace la media
+    ar.sem[,,w] <- ar.mean.w
     
   } # End loop semanas
   return(ar.sem)
