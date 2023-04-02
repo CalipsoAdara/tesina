@@ -25,19 +25,22 @@ library(data.table)
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Path a donde guardar los archivos
-savepath = "/home/lucia.castro/SubX_processed_Rdata/model"
+savepath = "/home/lucia.castro/SubX_processed_Rdata/model/viernes"
 
 # Seteo el directorio
-setwd(savepath)
+setwd("/home/lucia.castro/SubX_processed_Rdata/model/viernes")
 
 # --------------------------------------------------------------------------------------------------------
 # Cargo datos modelos y MJO
 models = c("ESRL","ECCC","EMC","GMAO","RSMAS","NRL","MME")
 nmodels = length(models)
-df_rmm <- readRDS("./MJO/df_rmmOA.rds")
+# La tabla de MJO no depende de la formacion del MME 
+df_rmm <- readRDS("/home/lucia.castro/SubX_processed_Rdata/model/MJO/df_rmmOA.rds")
 Bins = levels(df_rmm$Bin)
 
-# ESTO LO ESTOY HACIENDO POR FASE Y NO POR FASE INICIAL OJO!!
+# OJO!! 
+# La columna BIN da la fase inicial del evento
+# La columna FASE da la fase de ese dia 
 for (m in models) {  # por cada modelo
   
   # cargo datos
@@ -80,9 +83,9 @@ for (m in models) {  # por cada modelo
 # PROMEDIOS EN REGIONES
 
 # Poligonos. Lon de menor a mayor, el primer punto se repite para cerrar el poligono
-SP <- readRDS("./poligonos/SP.rds")
+SP <- readRDS("../poligonos/SP.rds")
 
-SACZ <- readRDS("./poligonos/SACZ.rds")
+SACZ <- readRDS("../poligonos/SACZ.rds")
 
 # cargo datos
 df = data.frame()
@@ -119,16 +122,16 @@ setnames(prom_sp,"L","LEADS")
 
 
 # GUARDO
-saveRDS(prom_sacz, "./poligonos/prom_sacz_faseINI.rds")
-saveRDS(prom_sp, "./poligonos/prom_sp_faseINI.rds")
+saveRDS(prom_sacz, "./MJO/fase/prom_sacz_faseINI.rds")
+saveRDS(prom_sp, "./MJO/fase/prom_sp_faseINI.rds")
 
 # --------------------------------------------------------------------------------------------
 # G R A F I C O S 
 
 
 # cargar de ser necesario
-prom_sacz <- readRDS("./poligonos/prom_sacz_faseINI.rds")
-prom_sp <- readRDS("./poligonos/prom_sp_faseINI.rds")
+prom_sacz <- readRDS("./MJO/fase/prom_sacz_faseINI.rds")
+prom_sp <- readRDS("./MJO/fase/prom_sp_faseINI.rds")
 ref <- readRDS("./metric/dt_regions.rds")
 
 # JUnto en un solo data frame 
@@ -136,8 +139,10 @@ prom_sacz$REGION = rep("SACZ",nrow(prom_sacz))
 prom_sp$REGION = rep("SEPG",nrow(prom_sp))
 prom = rbind(prom_sacz,prom_sp)
 prom = FactorsModels(prom, Col = "MODEL")  # convierto los models en factors
-ref$BIN = rep("ALL",nrow(ref))  # agrego columna con nombre de bBins
+ref$BIN = rep("TOTAL",nrow(ref))  # agrego columna con nombre de bBins
 dt = rbind(prom,ref)
+
+dt$BIN
 
 # Hago primero con ACC Primero
 dt_acc = dt[L1 == "acc" ]
@@ -152,22 +157,39 @@ max = dt_acc[MODEL != "MME", list(ymax=(max(media,na.rm = T))), by=.(LEADS,REGIO
 min = dt_acc[MODEL != "MME", list(ymin=(min(media,na.rm = T))), by=.(LEADS,REGION)]
 Nube = merge.data.table(max,min)
 NubeACC=merge.data.table(dt_acc[MODEL=="MME"], Nube, by=c("LEADS","REGION"))
+NubeACC[,6:8] <- NubeACC[,6:8]*100
 max = dt_rmse[MODEL != "MME", list(ymax=(max(media,na.rm = T))), by=.(LEADS,REGION)]
 min = dt_rmse[MODEL != "MME", list(ymin=(min(media,na.rm = T))), by=.(LEADS,REGION)]
 Nube = merge.data.table(max,min)
 NubeRMSE=merge.data.table(dt_rmse[MODEL=="MME"], Nube, by=c("LEADS","REGION"))
+
 #------------------------------------
+# GUARDO
+saveRDS(NubeACC,"./metric/NubeACC.rds")
+saveRDS(NubeRMSE,"./metric/NubeRMSE.rds")
+#------------------------------------
+
+# Etiqueto las regiones para numerarlas en el grafico
+NubeACC$REGION[NubeACC$REGION=="SACZ"] <- "a) SACZ"
+NubeACC$REGION[NubeACC$REGION=="SEPG"] <- "b) SEPG"
+
+NubeRMSE$REGION[NubeRMSE$REGION=="SACZ"] <- "c) SACZ"
+NubeRMSE$REGION[NubeRMSE$REGION=="SEPG"] <- "d) SEPG"
 
 # Grafico
 gacc <- GraphLineRibbon(Data=NubeACC, X = "LEADS", Y = "media", Ymin = "ymin", Ymax = "ymax",
                         SIZE = "BIN",COLOR = "BIN", Facet = "REGION", EjeX = "LEADS" , EjeY = "ACC" )
 grmse <- GraphLineRibbon(Data=NubeRMSE, X = "LEADS", Y = "media", Ymin = "ymin", Ymax = "ymax",
-                        SIZE = "BIN",COLOR = "BIN", Facet = "REGION", EjeX = "LEADS" , EjeY = "ACC" )
+                        SIZE = "BIN",COLOR = "BIN", Facet = "REGION", EjeX = "LEADS" , EjeY = "RMSE" )
 
 
 # agrego linea en el cero
 gacc <- gacc + geom_hline(yintercept = 0, color = "grey58", size = 0.5, linetype = "dashed")
+grmse <- grmse + geom_hline(yintercept = 0, color = "grey58", size = 0.5, linetype = "dashed")
 
+# agrego titulos y subtitulo
+gacc
+grmse <- grmse + ylim(0,4)
 
 # GUARDO
 ggsave(filename="./MJO/fase/acc_Region_fase.png",plot=gacc,width = 10, height = 5)

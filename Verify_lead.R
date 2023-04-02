@@ -16,7 +16,7 @@ library(secr)
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Path a donde guardar los archivos
-savepath = "/home/lucia.castro/SubX_processed_Rdata/model"
+savepath = "/home/lucia.castro/SubX_processed_Rdata/model/viernes"
 
 # Seteo el directorio
 setwd(savepath)
