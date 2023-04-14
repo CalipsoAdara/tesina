@@ -309,6 +309,10 @@ SP <- data.frame(x_coords = c(293,289,290,293,298,293),
 SACZ <- data.frame(x_coords = c(305,305,312,319,323,305),
                    y_coords = c(-10,-20,-24,-25,-10,-10))
 
+SESA <- data.frame(x_coords = c(298,298,310,310,298),
+                   y_coords = c(-25,-35,-35,-25,-25))
+
+saveRDS(SESA,"/home/lucia.castro/SubX_processed_Rdata/model/poligonos/SESA.rds")
 
 
 mapa<-map_data("world2")
@@ -319,6 +323,7 @@ g=ggplot() +
   geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
   geom_polygon(data= SP, aes(x=x_coords, y=y_coords),color= 'slateblue',fill= NA,size=1)+
   geom_polygon(data= SACZ, aes(x=x_coords, y=y_coords),color= 'seagreen',fill= NA,size=1) +
+  geom_polygon(data= SESA, aes(x=x_coords, y=y_coords),color= 'brown4',fill= NA,size=1) +
 
 theme(axis.text=element_text(size=12))+
   theme(strip.text.x = element_text(size = 12, colour = "black"))+
@@ -333,13 +338,15 @@ theme(axis.text=element_text(size=12))+
   coord_cartesian(xlim = c(270,325), ylim = c(-60,15)) +
 
     # agrego nombres de poligonos
-    annotate("text", x = 297, y = -32, label = "SEPG",
+    annotate("text", x=300, y = -45, label = "SEPG",
              col = "slateblue", size = 5)  +     #angle=-60 si queres
+  annotate("text", x = 302, y = -23.3, label = "SESA",
+           col = "brown4", size = 5)  +     
   annotate("text", x = 312, y = -9, label = "SACZ",
             col = "seagreen", size = 5)
 g
 # guardo
-ggsave(plot=g,filename = "./SubX_processed_Rdata/model/poligonos/poli.png",width = 7, height = 9)
+ggsave(plot=g,filename = "/home/lucia.castro/SubX_processed_Rdata/model/poligonos/poli.png",width = 7, height = 9)
 
 
 #---------------------------------------------------------------------------------------------
