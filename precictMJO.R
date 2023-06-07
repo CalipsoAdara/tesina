@@ -11,8 +11,10 @@ library(abind)
 library(lubridate)
 library(data.table)
 library(scales)
+library(ggplot2)
 library(ggpubr)
 library("grid")
+
 
 # Cargo mis funciones
 source("/home/lucia.castro/tesina/funciones.R")
@@ -337,7 +339,7 @@ for (b in bin) {
   predbin <- readRDS(paste0("./viernes/MJO/predicBin/predic_bin",b,".rds"))
   
   # Resto
-  pred_diff <- predbin - predtotal
+  pred_diff <- predbin*100 - predtotal*100
   
   # convierto a data frame para las 4 weeks
   dimnames(pred_diff) <- list("x" = seq(265,330,1), "y" = rev(seq(-60,15,1)),
@@ -348,10 +350,16 @@ for (b in bin) {
   df <- reshape2::melt(pred_diff)
   colnames(df) <- c("x","y","week","z")
   
+  # Si se desea cambiar week por semanas
+  #df = WeeksToSemanas(DF = df, Col = "week")
+  
   # grafico 
   fase = paste("Fases",substr(b,5,5),"y",substr(b,6,6))
-  g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-0.4,0.4,0.1),Label = "ACC",Paleta = "RdBu",Direccion = -1)
-  g <- g + ggtitle(paste0("Predictibilidad SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Abr)"))
+  g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-40,40,10),Label = "p.p.",Paleta = "RdBu",Direccion = -1)
+  #g <- g + ggtitle(paste0("Predictibilidad SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Abr)"))
+  g <- g + ggtitle(paste0("Predictability SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Apr)"))
   
-  ggsave(filename = paste0("./viernes/MJO/predicBin/predic_diff",b,".png"),plot=g,width = 10, height = 4)
+  ggsave(filename = paste0("./viernes/MJO/predicBin/predic_in_diff",b,".png"),plot=g,width = 10, height = 4)
 }
+
+
