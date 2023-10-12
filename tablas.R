@@ -10,13 +10,13 @@ rm(list=ls())
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Seteo el directorio
-setwd("/home/lucia.castro/SubX_processed_Rdata/model")
+setwd("/home/lucia.castro/SubX_processed_Rdata/model/viernes/")
 #--------------------------------------------------------------------------------------------------------
 # Tabla de inicios activos e inactivos segun el modelo
 
 # Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmmOA.rds")
-df_eventos <- readRDS("./MJO/df_eventosOA.rds")
+df_rmm <- readRDS("/home/lucia.castro/SubX_processed_Rdata/model/MJO/df_rmmOA.rds")
+df_eventos <- readRDS("/home/lucia.castro/SubX_processed_Rdata/model/MJO/df_eventosOA.rds")
 fechas_act <- as.character(df_rmm$DATE)
 groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')     
 Bins = levels(df_eventos$Bin)
@@ -33,17 +33,23 @@ for (g in 1:length(groups)) {
   startdate = dimnames(TargetDate)$startdate
   posMJO = startdate %in% fechas_act
   
+
+  
   
   # Cantidad de inicios antes y despues de restringir en los eventos
   stdt_totales <-c(stdt_totales,length(startdate))
   stdt_MJO <-c(stdt_MJO,sum(posMJO))
   
+  print(paste("Los inicios totales del modelo",grupo,"son:",length(startdate),"\nLos inicios MJO son:",sum(posMJO)))
+  
   for (b in Bins) {
+    f1 = as.numeric(substr(b,5,5))
+    f2 = as.numeric(substr(b,6,6))
     # Busco que startdates coinciden con los eventos activos
-    fechas_act_bin <- as.character(df_rmm[Bin==b,DATE])
+    fechas_act_bin <- as.character(df_rmm[FASE==f1|FASE==f2,(DATE)])
     posMJOBIN = startdate %in% fechas_act_bin
     stdt_fases <-c(stdt_fases,sum(posMJOBIN))
-    
+    print(paste("Los inicios del modelo",grupo,"en las fases:",f1,"o",f2,"son:",sum(posMJOBIN)))
   }
   
 }

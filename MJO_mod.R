@@ -20,7 +20,7 @@ library(dplyr)
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Seteo el directorio
-setwd("/home/lucia.castro/SubX_processed_Rdata/model")
+setwd("/home/lucia.castro/SubX_processed_Rdata/model/viernes")
 
 groups=c('GMAO','RSMAS','ESRL','ECCC','NRL','EMC','MME')                       
 models=c('GEOS_V2p1','CCSM4','FIMr1p1','GEM','NESM','GEFS','SAT')   
@@ -44,11 +44,11 @@ var_mjo = c("RMM1","RMM2","amplitude","phase")
 # Podria separar por fases al iniciar 
 
 # Cargo los datos de eventos
-df_rmm <- readRDS("./df_rmmOA.rds")
-df_eventos <- readRDS("./df_eventosOA.rds")
+df_rmm <- readRDS("/home/lucia.castro/SubX_processed_Rdata/model/MJO/df_rmmOA.rds")
+df_eventos <- readRDS("/home/lucia.castro/SubX_processed_Rdata/model/MJO/df_eventosOA.rds")
 fechas_act <- as.character(df_rmm$DATE)
 # Cargo datos del rho1 para la significancia
-rho1 <- readRDS("./rho1.rds")
+rho1 <- readRDS("../rho1.rds")
 
 for (g in 1:length(groups)) {
   grupo = groups[g]
@@ -99,19 +99,18 @@ for (g in 1:length(groups)) {
   #---------------------------------------------------------------------------------------
   #  Gráficos  
   #---------------------------------------------------------------------------------------
-  g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.25),Label = "RMSE",Paleta = "YlOrRd", Direccion = "1")
-  g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "ME",Paleta = "RdBu",Direccion = "-1")
-  g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlGn",Direccion = "1")
-  g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
+  
+  #g1 <- GraphDiscreteMultiple(Data = dt.rmse, Breaks = seq(0,3,0.25),Label = "RMSE",Paleta = "YlOrRd", Direccion = "1")
+  #g2 <- GraphDiscreteMultiple(Data = dt.me, Breaks = seq(-0.1,0.1,0.025), Label = "ME",Paleta = "RdBu",Direccion = "-1")
+  #g3 <- GraphMultiplePuntos(Data = dt.acc, ArLogic = test, Breaks = seq(0,1,0.20), Label = "ACC",Paleta = "YlGn",Direccion = "1")
+  #g4 <- GraphDiscreteMultiple(Data = dt.var, Breaks = seq(-0.5,0.5,0.10), Label = "NRMSE",Paleta = "RdBu",Direccion = "-1")
   
   
   
-  title = title <- paste("SubX ",grupo,"-",model," Inicios",nstartdateMJO,"/",nstartdate,
-                         "\nMJO inactive events T2MA(99-14, Oct-Apr) ")
-  fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
-  ggsave(filename=paste0("./MJO/scores_map_MJO_act_",grupo,".png"),
-         plot=fig,width = 10, height = 15)
-  
+  #title = title <- paste("SubX ",grupo,"-",model," Inicios",nstartdateMJO,"/",nstartdate,
+  #                       "\nMJO inactive events T2MA(99-14, Oct-Abr) ")
+  #fig <- grid.arrange(g1,g2,g3,g4, ncol = 1,top = textGrob(title,gp=gpar(fontsize=13,font=3)))
+  #ggsave(filename=paste0("./MJO/scores_map_MJO_inact_",grupo,".png"),plot=fig,width = 10, height = 15)
 }
 
 
@@ -204,7 +203,7 @@ for (g in 1:length(groups)) {
     resta_bin <- Map('-', sco_bin, metricINA) #Resto ambas listas 
     
     # Guardar la diferencia
-    saveRDS(resta_bin,paste0("./MJO/ScoresBins/diff",grupo,b))
+    saveRDS(resta_bin,paste0("./MJO/ScoresBins/diff_FI_",grupo,b))
     
     # Graficos
     g1 <- GraphDiscreteMultiple(Data = ggScoreSemanal(resta_bin[[1]]), Breaks = seq(-0.2,0.2,0.05),Label = "RMSE",Paleta = "RdBu", Direccion = "1") 
@@ -232,7 +231,7 @@ df <- data.frame()
 
 for (m in groups){
   for (b in Bins) {
-    df_mod <- reshape2::melt(readRDS(paste0("./MJO/ScoresBins/diff",m,b)))
+    df_mod <- reshape2::melt(readRDS(paste0("./MJO/ScoresBins/diff_FI_",m,b)))
     # agrego columnas
     df_mod$mod <- rep(m, nrow(df_mod))
     df_mod$bin <- rep(b, nrow(df_mod))
@@ -245,40 +244,190 @@ dt<-as.data.table(df)
 # Uso factors para cambiar el orden de los models
 library(stringr)
 
-rep_str = c('GMAO'='GMAO-GEOS_V2p1','RSMAS'='RSMAS-CCSM4','ESRL'='ESRL-FIMr1p1',
-            'ECCC'='ECCC-GEM','NRL'='NRL-NESM','EMC'='EMC-GEFS','MME'='MME')
+dt = FactorsModelsPretty(DF = dt, Col ="mod")
+
+
+# Le cambio el nombre de las metricas
 met_str = c('rmse'='RMSE','acc'='ACC')
-dt$mod <- str_replace_all(dt$mod, rep_str)
 dt$metric <- str_replace_all(dt$metric, met_str)
 
-# Para que plotee los leads de forma correcta los convierto en factors
-dt$mod =  factor(dt$mod, levels=c('GMAO-GEOS_V2p1','RSMAS-CCSM4','ESRL-FIMr1p1',
-                                      'ECCC-GEM','NRL-NESM','EMC-GEFS','MME'))
+# Le cambio el nombre a las semanas
+dt = WeeksToSemanas(DF = dt, Col = "week")
+
+# Le cambio el nombre a las fases
+fases = c('Fase81'='*Fases* **8** *y* **1**',
+          'Fase23'='*Fases* **2** *y* **3**',
+          'Fase45'='*Fases* **4** *y* **5**',
+          'Fase67'='*Fases* **6** *y* **7**')
+
+dt$bin <- str_replace_all(dt$bin, fases)
 
 
 
 # Graficado y guardado
 
-for (w in c("Week 1", "Week 2", "Week 3", "Week 4")) { #por cada semana
+for (w in c( "Semana 2", "Semana 3")) { #por cada semana
   for (mt in unique(dt$metric)) { # para rmse y acc
     
     # Restrinjo y grafico
     data = dt[week == w & metric == mt]
-    titulo = paste("MJO act-inact (99-14, Oct-Apr) \n ",mt,w)
+    
+    if (mt == "RMSE") {
+      titulo = paste0("<span style = 'font-size:25pt; font-family:Helvetica;'>RMSE de la **",w,"** Proyecto SubX 
+    </span><br>*Segun región y fase inicial de Madden-Julian (99-14, Oct-Abr)* ")
+    } else if (mt == "ACC") {
+      titulo = paste0("<span style = 'font-size:25pt; font-family:Helvetica;'>ACC de la **",w,"** Proyecto SubX 
+    </span><br>*Segun región y fase inicial de Madden-Julian (99-14, Oct-Abr)* ")
+    }
+    
+    if (mt == "ACC") {
+      data$value=data$value*100
+      breks = seq(-50,50,10)
+      leg.title = "p.p."
+    } else if (mt == "RMSE") {
+      breks = seq(-0.5,0.5,0.10)
+      leg.title = "°C"
+    }
+    
     
     # si haces el rmse tenes que poner direccion 1
     # si haces acc tenes que poner direccion -1
     if (mt=="RMSE") {direccion = 1
     } else {direccion = -1}
     
-    fig<-GraphMJOCond(Data=data, Breaks = seq(-0.5,0.5,0.10), 
-                 Paleta = "RdBu", Direccion = direccion, Titulo = titulo)
-    sem = substr(w,6,6)
-    ggsave(filename=paste0("./MJO/ScoresBins/scores2_MJODIFF_",sem,"_",mt,".png"),
-           plot=fig,width = 10, height = 15)
+    fig<-GraphMJOCondLegend(Data=data, 
+                            Breaks = breks, 
+                            Paleta = "RdBu",
+                            Direccion = direccion,
+                            Row = "MODEL",
+                            Col = "bin" ,
+                            Titulo = titulo,
+                            Label = leg.title)
+
+
+      
+    # Guardado
+    sem = substr(w,8,8)
+    ggsave(filename=paste0("./MJO/ScoresBins/scoresFIv3_MJODIFF_",sem,"_",mt,".png"),
+           plot=fig,width = 10, height = 17)
   }
-  
 }
 
+# Grafico de solo MME para S2S Summit
+dt_mme=dt[MODEL=="**MME**"]
 
+for (w in c( "Semana 2", "Semana 3")) { #por cada semana
+  for (mt in unique(dt$metric)) { # para rmse y acc
+    
+    # Restrinjo y grafico
+    data = dt_mme[week == w & metric == mt]
+    
+    if (mt == "RMSE") {
+      titulo = paste0("<span style = 'font-size:14pt; font-family:Helvetica;'>RMSE de la **",w,"** Proyecto SubX 
+    </span><br>*Segun región y fase inicial de Madden-Julian (99-14, Oct-Abr)* ")
+    } else if (mt == "ACC") {
+      titulo = paste0("<span style = 'font-size:14pt; font-family:Helvetica;'>ACC de la **",w,"** Proyecto SubX 
+    </span><br>*Segun región y fase inicial de Madden-Julian (99-14, Oct-Abr)* ")
+    }
+    
+    if (mt == "ACC") {
+      data$value=data$value*100
+      breks = seq(-50,50,10)
+    } else if (mt == "RMSE") {
+      breks = seq(-0.5,0.5,0.10)
+    }
+    
+    
+    # si haces el rmse tenes que poner direccion 1
+    # si haces acc tenes que poner direccion -1
+    if (mt=="RMSE") {direccion = 1
+    } else {direccion = -1}
+    
+    fig<-GraphMJOCondLegend(Data=data, 
+                            Breaks = breks, 
+                            Paleta = "RdBu",
+                            Direccion = direccion,
+                            Row = "MODEL",
+                            Col = "bin" ,
+                            Titulo = titulo)
+    
+    
+    # Guardado
+    sem = substr(w,8,8)
+    ggsave(filename=paste0("./MJO/ScoresBins/MME_mjodiff_",sem,"_",mt,".png"),
+           plot=fig,width = 7, height = 4.5)
+  }
+}
+# Funcion para graficar las metricas de MJO en mjo_mod y mjo_fases con una leyenda condicional
+
+  ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
+  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
+  # son los valores
+  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
+  ## Titulo: character vector con el titulo del grafico
+  ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
+  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
+  ## Row, Col: string con las columnas segun hacer facet grid
+  
+  # Cargo paquetes
+  library("ggplot2")
+  library("maps")
+  library("RColorBrewer")
+library(ggtext)
+data = dt[week == "Semana 2" & metric == "RMSE"]
+data$MODEL<- str_replace_all(data$MODEL, rep_str2)
+
+Data=data 
+Breaks = seq(-0.5,0.5,0.10)
+Paleta = "RdBu"
+Direccion = 1
+Titulo = ""
+Row = "MODEL"
+Col = "bin"
+  
+  # Seteo los parametros de mapa y gradiente 
+  mapa<-map_data("world2") 
+  min <- min(Data$value, na.rm = T)
+  max <- max(Data$value, na.rm = T)
+  Data$value=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
+  
+  # Aqui extiendo un poco la escala para que cubra todo
+  fillbreaks = Breaks
+  fillbreaks[length(Breaks)] <- max(Breaks)*1.1
+  fillbreaks[1] <- min(Breaks)*1.1
+  
+  # Grafico en si 
+  g<-  ggplot() +                                          # o Breaks   
+    geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
+    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+    scale_fill_distiller(palette=Paleta,direction= Direccion,
+                         na.value = "transparent",
+                         breaks = Breaks,
+                         limits = c(min(Breaks), max(Breaks)),
+                         guide = guide_colorstrip(),
+                         oob  = scales::squish) +
+    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+    MarianoTheme + 
+    # Ejes del Facet grid
+    theme(strip.text.x = element_markdown(size=18),
+          strip.text.y = element_markdown())+
+    facet_grid( get(Row) ~ get(Col))  +   # esto es nuevo row ~ col
+    coord_cartesian()  +
+    # Leyenda
+    theme(legend.position  = "bottom",
+          legend.title = element_blank(),
+          legend.key.size = unit(1.3,"cm"),
+          legend.text = element_text(size = 10))+
+    
+    # Titulo
+    labs(title = Titulo)+
+    theme(plot.title = element_markdown(size = 11, lineheight = 1.2, hjust = 0.5))
+  
+  g
+  # Ahora agrego leyenda
+  legend <- LeyendaCondicional(Breaks, Paleta, Labels = c("MJO APORTA", "MJO NO APORTA"))
+  grid.arrange(g, legend,
+               ncol=1, nrow = 2, 
+               widths = c(3), heights = c( 2.5,0.2))
 

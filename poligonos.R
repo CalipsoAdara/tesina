@@ -312,6 +312,9 @@ SACZ <- data.frame(x_coords = c(305,305,312,319,323,305),
 SESA <- data.frame(x_coords = c(298,298,310,310,298),
                    y_coords = c(-25,-35,-35,-25,-25))
 
+VACIO <- data.frame(x_coords = c(1),
+                   y_coords = c(1))
+
 saveRDS(SESA,"/home/lucia.castro/SubX_processed_Rdata/model/poligonos/SESA.rds")
 
 
@@ -321,9 +324,10 @@ g=ggplot() +
   scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
 
   geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
-  geom_polygon(data= SP, aes(x=x_coords, y=y_coords),color= 'slateblue',fill= NA,size=1)+
-  geom_polygon(data= SACZ, aes(x=x_coords, y=y_coords),color= 'seagreen',fill= NA,size=1) +
-  geom_polygon(data= SESA, aes(x=x_coords, y=y_coords),color= 'brown4',fill= NA,size=1) +
+  geom_polygon(data= VACIO, aes(x=x_coords, y=y_coords),color= 'white',fill= NA,size=1)+
+  # geom_polygon(data= SP, aes(x=x_coords, y=y_coords),color= 'slateblue',fill= NA,size=1)+
+  # geom_polygon(data= SACZ, aes(x=x_coords, y=y_coords),color= 'seagreen',fill= NA,size=1) +
+  # geom_polygon(data= SESA, aes(x=x_coords, y=y_coords),color= 'brown4',fill= NA,size=1) +
 
 theme(axis.text=element_text(size=12))+
   theme(strip.text.x = element_text(size = 12, colour = "black"))+
@@ -335,10 +339,10 @@ theme(axis.text=element_text(size=12))+
                                         colour = "grey86"),
         panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                         colour = "grey86")) +
-  coord_cartesian(xlim = c(270,325), ylim = c(-60,15)) +
-
+  coord_cartesian(xlim = c(270,325), ylim = c(-60,15)) 
+g
     # agrego nombres de poligonos
-    annotate("text", x=300, y = -45, label = "SEPG",
+    annotate("text", x=298, y = -45, label = "PAT",
              col = "slateblue", size = 5)  +     #angle=-60 si queres
   annotate("text", x = 302, y = -23.3, label = "SESA",
            col = "brown4", size = 5)  +     
@@ -346,7 +350,7 @@ theme(axis.text=element_text(size=12))+
             col = "seagreen", size = 5)
 g
 # guardo
-ggsave(plot=g,filename = "/home/lucia.castro/SubX_processed_Rdata/model/poligonos/poli.png",width = 7, height = 9)
+ggsave(plot=g,filename = "/home/lucia.castro/SubX_processed_Rdata/model/poligonos/polivacio.png",width = 7, height = 9)
 
 
 #---------------------------------------------------------------------------------------------

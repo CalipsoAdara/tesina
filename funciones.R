@@ -367,7 +367,7 @@ GraphDiscretePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Di
 # Funcion para graficar multiple teniendo en cuenta la significancia de correlacion
 # se cubre con puntos la parte no significativa
 
-GraphMultiplePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Direccion){
+GraphMultiplePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Direccion, Lang){
   
   ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
   # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
@@ -378,6 +378,7 @@ GraphMultiplePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Di
   ## Label: character vector con el titulo para la barra de colores. Ej "Kelvin"
   ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
   ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
+  ## Lang: "es" o "en" para saber si escribir Semanas o Week
 
   # Cargo paquetes
   library("ggplot2")
@@ -393,7 +394,12 @@ GraphMultiplePuntos <- function(Data, ArLogic, Breaks, Titulo, Label, Paleta, Di
   # Crear data frame para los puntos
   lon = seq(265,330,1)
   lat = rev(seq(-60,15,1))
-  sem = c("Week 1", "Week 2", "Week 3", "Week 4")
+  
+  if (Lang == "en") { # si es en ingles
+    sem = c("Week 1", "Week 2", "Week 3", "Week 4")}
+  if (Lang == "es") { # si es en español
+    sem = c("Semana 1", "Semana 2", "Semana 3", "Semana 4")}
+
   
   # Busca los indices donde hay TRUE y los evalua en las lon y lat. Asi recibe la informacion GEOM_POINT
   mtx.posicion = which(ArLogic, arr.ind = T)
@@ -1197,6 +1203,75 @@ GraphMJOCond <- function(Data, Breaks, Titulo, Paleta, Direccion, Row, Col){
                widths = c(3), heights = c( 2.5,0.2))
   
 }
+# ---------------------------------------------------------------------------------------------
+# Funcion para graficar las metricas de MJO en mjo_mod y mjo_fases con una leyenda condicional
+GraphMJOCondLegend <- function(Data, Breaks, Paleta, Direccion, Row, Col,Titulo,Label){
+  ## Data: un data frame de al menos 3 dimensiones para realizar el mapa. Primer dim son las long repetidas la cantidad
+  # de veces de las latitudes, Segunda dim son las lat repetidas la cantidad de veces de las longitudes y Tercera dim 
+  # son los valores
+  ## Breaks: un vector con los numeros para discretizar la barra de colores. Ej c(0,5,10,20)
+  ## Paleta: character vector que indica una paleta existente. Ej "RdBu"
+  ## Direccion : numero 1 o -1 para indicar si se revierte la paleta. 
+  ## Row, Col: string con las columnas segun hacer facet grid
+  ## Label: titulo para la legenda de colores
+  
+  # Cargo paquetes
+  library("ggplot2")
+  library("maps")
+  library("RColorBrewer")
+  
+  # Seteo los parametros de mapa y gradiente 
+  mapa<-map_data("world2") 
+  min <- min(Data$value, na.rm = T)
+  max <- max(Data$value, na.rm = T)
+  Data$value=oob_squish(Data$value,range = c(min(Breaks),max(Breaks)))
+  
+  # Aqui extiendo un poco la escala para que cubra todo
+  fillbreaks = Breaks
+  fillbreaks[length(Breaks)] <- max(Breaks)*1.1
+  fillbreaks[1] <- min(Breaks)*1.1
+  
+  # Grafico en si 
+  g<-  ggplot() +                                          # o Breaks   
+    geom_contour_fill(data=Data,aes(lon, lat, z = value),breaks = fillbreaks) +
+    scale_x_longitude(breaks = c(280,300, 320),expand = c(0.09, 0.09)) +
+    scale_y_latitude(breaks = c(-40,-20,0),expand = c(0.09, 0.09)) +
+    scale_fill_distiller(palette=Paleta,direction= Direccion,
+                         na.value = "transparent",
+                         breaks = Breaks,
+                         limits = c(min(Breaks), max(Breaks)),
+                         guide = guide_colorstrip(),
+                         oob  = scales::squish,
+                         name = Label) +
+    geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
+    MarianoTheme + 
+    # Ejes del Facet grid
+    theme(strip.text.x = element_markdown(size=18),
+          strip.text.y = element_markdown(size=15))+
+    facet_grid( get(Row) ~ get(Col))  +   # esto es nuevo row ~ col
+    coord_cartesian()  +
+
+
+    # Leyenda
+    theme(legend.position  = "bottom",
+          legend.text = element_text(size = 15),
+          legend.key.width = unit(2.5,"cm"),
+          legend.key.height = unit(1.3,"cm"))+
+    
+    # Titulo
+    labs(title = Titulo)+
+    theme(plot.title = element_markdown(size = 17, lineheight = 1.2, hjust = 0.5),
+          plot.subtitle = element_text(size = 10))
+  
+
+  # Ahora agrego leyenda
+  legend <- LeyendaCondicional(Breaks, Paleta, Labels = c("MJO APORTA", "MJO NO APORTA"))
+  grid.arrange(g, legend,
+               ncol=1, nrow = 2, 
+               widths = c(3), heights = c( 2.5,0.2))
+  
+  
+}
 #----------------------------------------------------------------------------------------------
 # Funcion para graficar las metricas segun grupos. Sin leyenda condicional
 GraphMet <- function(Data, Breaks, Titulo, Paleta, Direccion, Row, Col){
@@ -1296,8 +1371,10 @@ GraphGrupos <- function(Data, Breaks, Titulo, Paleta, Direccion,Label){
                          oob  = scales::squish) +
     ggtitle(Titulo)  +
     geom_map(dat=mapa, map = mapa, aes(map_id=region), fill="NA", color="black", inherit.aes = F)+
-    theme(axis.text=element_text(size=12))+
-    theme(strip.text.x = element_text(size = 12, colour = "black"))+
+   theme(strip.text.x = element_markdown(size=12),
+         strip.text.y = element_markdown())+
+    #theme(axis.text=element_text(size=12))+
+
     facet_grid( model~ lead )  +   # esto es nuevo row ~ col
     
     theme(strip.background = element_rect(color="black", fill="white", size=1.2, linetype="blank"))+
@@ -1308,8 +1385,7 @@ GraphGrupos <- function(Data, Breaks, Titulo, Paleta, Direccion,Label){
           panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                           colour = "grey86")) +
     coord_cartesian()  +
-    theme(plot.title = element_text(hjust = 0.5))+
-    theme(legend.position  = "none")
+    theme(plot.title = element_text(hjust = 0.5))
   
 
 }
@@ -1509,7 +1585,7 @@ EnsamblesPredictiblidad <- function(Modelos,TgdtMod, StdtMod, FechEnsam,TgdtEnsa
   # Guarde todas las correlaciones por separado para que sea menos pesado y ahora promedio
   
   cor_mod <- array(NA, dim = c(66,76,28,nmodels))
-  for (m in nmodels) {
+  for (m in 1:nmodels) {
     cor_mod[,,,model] <- readRDS(paste0(FilePath,"/predic_",models[m],".rds"))
   }
   
@@ -1557,6 +1633,58 @@ FactorsModels <- function(DF,Col) {
   # Para que plotee los leads de forma correcta los convierto en factors
   DF$MODEL=  factor(DF$MODEL, levels=c('GMAO-GEOS_V2p1','RSMAS-CCSM4','ESRL-FIMr1p1',
                                                      'ECCC-GEM','NRL-NESM','EMC-GEFS','MME'))
+  return(DF)
+}#---------------------------------------------------------------------------------------
+# Funcion para convertir rapido los nombres de modelos en dataframes, y que los haga 
+# factors para que ordernarlos como yo quiero (MME Ultimo) Con formato para ggtext
+FactorsModelsPretty <- function(DF,Col) {
+  ## DF: Data frame o data table donde cambiar el nombre de los modelos
+  ## Col: Nombre de la columna donde estan los nombres de los modelos
+  
+  # Cambio el nombre de modelos por factores
+  # Uso factors para cambiar el orden de los models
+  library(stringr)
+  library(data.table)
+  
+  
+  setnames(DF,old = Col,"MODEL")
+  
+  rep_str2 = c('GMAO'='**GMAO**-*GEOS*',
+               'RSMAS'='**RSMAS**-*CCSM4*',
+               'ESRL'='**ESRL**-*FIMr1p1*',
+               'ECCC'='**ECCC**-*GEM*',
+               'NRL'='**NRL**-*NESM*',
+               'EMC'='**EMC**-*GEFS*',
+               'MME'='**MME**')
+  
+  DF$MODEL <- str_replace_all(DF$MODEL, rep_str2)
+  # Para que plotee los leads de forma correcta los convierto en factors
+  DF$MODEL=  factor(DF$MODEL, levels=c('**GMAO**-*GEOS*','**RSMAS**-*CCSM4*','**ESRL**-*FIMr1p1*',
+                                       '**ECCC**-*GEM*','**NRL**-*NESM*','**EMC**-*GEFS*','**MME**'))
+  return(DF)
+  
+
+}#---------------------------------------------------------------------------------------
+# Funcion para convertir rapido los nombres de modelos en dataframes, 
+# para cambiar de idioma (weeks a semanas)
+WeeksToSemanas <- function(DF,Col) {
+  ## DF: Data frame o data table donde cambiar el nombre de los plazos
+  ## Col: Nombre de la columna donde estan los nombres de los plazos
+  
+
+  library(stringr)
+  library(data.table)
+  
+  setnames(DF,old = Col,"week")
+  
+  rep_str = c('Week 1'='Semana 1',
+              'Week 2'='Semana 2',
+              'Week 3'='Semana 3',
+              'Week 4'='Semana 4')
+  
+  
+  DF$week <- str_replace_all(DF$week, rep_str)
+ 
   return(DF)
   
 }
@@ -1614,6 +1742,42 @@ ACC2 <- function(Ar1, Ar2, Dim) {
     }  # End loop lon
     
   } # End loop week
+  return(acc)
+}
+
+#----------------------------------------------------------------------------------------
+# FUncion para hacer la correlacion entre dos arrays cuando tienen mas de una dimension
+# Le falta pulido. en realidad lo hace iterando sobre 5 dimensiones, si hubiera mas no se puede
+
+ACC3 <- function(Ar1, Ar2, Dim) {
+  # Tienen que tener mismas dimensiones 
+  ## Ar1: array 1 a comparar
+  ## Ar2: array 2 a comparar
+  ## Dim: posicion donde esta la dimension a correlacion. Por ej, 2
+  
+  # Para el calculo de ACC hago una vuelta mas, para recorrer todos los puntos y obtener un valor de correlacion
+  dim = dim(Ar1)[-Dim]
+  acc <- array(NA, dim = dim)
+  for (lead in 1:dim[4]) {
+    for (week in 1:dim[3]) {
+      for (lat in 1:dim[2]) {
+        for (lon in 1:dim[1]) {
+          
+          # Me quedo solo una dimension a analizar y todos las fechas de pronostico
+          ar1.week <- Ar1[lon,lat,,week,lead]
+          ar2.week <- Ar2[lon,lat,,week,lead]
+          
+          coef_corr <- cor(ar1.week,ar2.week,use="pairwise.complete.obs",method = "pearson")
+          
+          acc[lon,lat,week,lead] <- coef_corr
+          
+        } # End loop lat
+        
+      }  # End loop lon
+      
+    } # End loop week
+  } # End loop 4 dim
+  
   return(acc)
 }
 #----------------------------------------------------------------------------------------
@@ -1734,12 +1898,14 @@ GraphLineRibbon <- function(Data,Var, X, Y, Ymin, Ymax, EjeX, EjeY, SIZE, COLOR,
   ## Facet: nombre de la columna por el cual separar 
   ## EJex, Ejey: nombres para los ejes
   
+  p = c("darkolivegreen4","indianred2","steelblue1","darkorange","black")
+  
   ggplot(Data) +
     geom_ribbon(aes(x = get(X), ymin=get(Ymin), ymax=get(Ymax)), fill="grey88")+
     geom_line( aes(x = get(X), y = get(Y),size = get(SIZE), color = get(COLOR))) +
     scale_color_manual(values = p) +
-    scale_alpha_manual(values = c(rep(0.15,6),1), guide= "none") +
-    scale_size_manual(values = c(1,rep(0.5,4)), guide= "none") +
+    scale_alpha_manual(values = c(rep(0.15,4),1), guide= "none") +
+    scale_size_manual(values = c(rep(0.5,4),1), guide= "none") +
     facet_grid(.~get(Facet)) +
     MarianoTheme +
     # nombre de los ejes
@@ -1748,3 +1914,198 @@ GraphLineRibbon <- function(Data,Var, X, Y, Ymin, Ymax, EjeX, EjeY, SIZE, COLOR,
   
 }
 #----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------
+# Funcion que toma los arrays de 3 dimensiones (lon,lat y leads) y los promedia en 4 semanas
+MediaSemanal <- function(Array){
+  
+
+  # TargetDate: Matriz donde los elementos son las fechas del targetdate para cada startdate y cada lead
+  # Array: Array con los datos. Debe tener dimensiones de lon lat, y leads
+  
+  # Nombre de las dimensiones al final
+  lon = seq(265,330,1)
+  lat = rev(seq(-60,15, 1))
+  weeks = c("Semana 1", "Semana 2","Semana 3","Semana 4")
+  
+  # Crea las variables a llenar
+  anom_media_semanal <- array(NA, dim = c(66,76,4),
+                              dimnames = list("lon"=lon,"lat"=lat,"week"=weeks))
+  lead = c(1,8,15,22) # Es el lead inicial para cada semana
+  
+  for (w in 1:4) {
+    
+      
+      week=acc[,,w:(w+6)]
+      media_semanal = apply(week, c(1,2), FUN = mean, na.rm = T)
+      anom_media_semanal[,,w] <- media_semanal 
+      
+
+  }# End loop week
+  
+  return(anom_media_semanal)
+}
+
+# ----------------------------------------------------------------------------------------------
+# Esto sirve para cambiar como se ven los modelos usando el ggtext. El grupo esta en negrita
+# y el modelo en italica
+rep_str = c('GMAO-GEOS_V2p1'='**GMAO**<br>*GEOS*<br>',
+            'RSMAS-CCSM4'='**RSMAS**<br>*CCSM4*<br>',
+            'ESRL-FIMr1p1'='**ESRL**<br>*FIMr1p1*<br>',
+            'ECCC-GEM'='**ECCC**<br>*GEM*<br>',
+            'NRL-NESM'='**NRL**<br>*NESM*<br>',
+            'EMC-GEFS'='**EMC**<br>*GEFS*<br>',
+            'MME'='<br>*MME*<br>')
+rep_str2 = c('GMAO-GEOS_V2p1'='**GMAO**-*GEOS*',
+            'RSMAS-CCSM4'='**RSMAS**-*CCSM4*',
+            'ESRL-FIMr1p1'='**ESRL**-*FIMr1p1*',
+            'ECCC-GEM'='**ECCC**-*GEM*',
+            'NRL-NESM'='**NRL**-*NESM*',
+            'EMC-GEFS'='**EMC**-*GEFS*',
+            'MME'='**MME**')
+#_--------------------------------------------------------------------------------------
+GraphHeatmap <- function(Data,X,Y,Fill,Breaks,Label,Paleta){
+  # Data: dataframe con los datos
+  # X: nombre de la columna con los valores en x
+  # Y: nombre de la columna con los valores en y
+  # Fill: nombre de la columna con la que llenar los cuadrados
+  # Label: nombre para la escala
+  # Paleta: "rmse" o "acc"
+  library(ggplot2)
+  library(ggtext)
+  
+  if (Paleta =="acc") { palette = c("#000000","#FFFFFF", "#CCE0CC", "#99C199", "#65A265", "#328332", "#006400")
+    
+  } else { palette = c("#fff5f0","#fee0d2","#fcbba1","#fc9272","#fb6a4a","#ef3b2c","#cb181d","#99000d")} # caso rmse
+
+  
+  g <-ggplot(Data,aes(x = get(X), y = get(Y), fill = get(Fill))) +
+    
+    geom_tile(color = "white")+
+    binned_scale(aesthetics = "fill",
+                 scale_name = "stepsn", 
+                 palette = function(x) palette,
+                 breaks = Breaks,
+                 limits = c(min(Breaks), max(Breaks)),
+                 show.limits = TRUE, 
+                 guide = "colorsteps",
+                 name = Label)+
+    
+    
+    theme_classic()+
+    theme(axis.ticks = element_blank(),
+          axis.line = element_blank(),
+          axis.text.x = element_text(angle = 30, hjust = 0.2),
+          axis.text.y = element_markdown(vjust = 0.5),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank()) +
+    scale_x_discrete(position = "top")+
+    
+    coord_fixed(0.9)
+  
+
+  return(g)
+}
+#-------------------------------------------------------------------------------------------------------------------------
+#_--------------------------------------------------------------------------------------
+GraphHeatmapPaleta <- function(Data,X,Y,Fill,Breaks,Label,Paleta){
+  # Data: dataframe con los datos
+  # X: nombre de la columna con los valores en x
+  # Y: nombre de la columna con los valores en y
+  # Fill: nombre de la columna con la que llenar los cuadrados
+  # Label: nombre para la escala
+  # Paleta: paleta usar
+  library(ggplot2)
+  library(ggtext)
+  
+
+  g <-ggplot(Data,aes(x = get(X), y = get(Y), fill = get(Fill))) +
+    
+    geom_tile(color = "white")+
+    binned_scale(aesthetics = "fill",
+                 scale_name = "stepsn", 
+                 palette =function(x) Paleta,
+                 breaks = Breaks,
+                 limits = c(min(Breaks), max(Breaks)),
+                 show.limits = TRUE, 
+                 guide = "colorsteps",
+                 name = Label)+
+    
+    
+    theme_classic()+
+    theme(axis.ticks = element_blank(),
+          axis.line = element_blank(),
+          axis.text.x = element_text(angle = 30, hjust = 0.2),
+          axis.text.y = element_markdown(vjust = 0.5),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank()) +
+    scale_x_discrete(position = "top")+
+    
+    coord_fixed(0.9)
+  
+  
+  return(g)
+}
+#-------------------------------------------------------------------------------------------------------------------------
+# Funcion que dado unas fechas a pronosticat (Target) y unos dias donde buscar la
+# La ejecucion devuelve el modelo restrigido en ese rango
+EncontrarPronosticoModelo <- function(Modelo, ModelTG, ModelST,ModelName, Target, StartWeek) {
+  # Modelo: array con lon,lat,lead,startdates a restringir
+  # ModeloTG: targetdate del modelo
+  # ModeloST: startdate del modelo
+  # ModelName: Nombre del modelo
+  # Target: Fechas a pronosticar
+  # Startweek: Fechas donde buscar la inicialiacion
+  
+  stdt= ModelST %in% StartWeek
+  
+  # Tomar la inicializacion ultima
+  if (sum(stdt)>1){stdt = last(which(stdt))}
+  
+  # Evaluo el modelo para coincidir en las targets
+  target = ModelTG[,stdt] %in% Target
+  modelo_objetivo= Modelo[,,target,stdt]
+  
+  # Llenar con NA si faltan dias 
+  modelo_objetivo= CompletarSiFalta(Target = target, 
+                                    Stdt = stdt, 
+                                    ModeloObjetivo = modelo_objetivo,
+                                    Startweek = StartWeek,
+                                    ModelNombre = ModelName,
+                                    Dias = length(Target))
+  
+  return(modelo_objetivo)
+}
+
+
+
+CompletarSiFalta <- function(Target, Stdt, ModeloObjetivo,Startweek, ModelNombre,Dias) {
+  ## Target: Vector logico
+  ## Stdt: Vector logico
+  ## ModeloObjetico: array de 3 dimensiones que deberia completarse con 66,76 y 28 lead
+  ## Startweek: Vector dates. la semana que se analiza.
+  ## ModelNombre
+  ## Dias a llenar
+  
+  # Si el modelo no alcanza a llenar los Dias dias del MME, llenar el resto con NA
+  if (sum(Target)<Dias) {
+    faltante = Dias - sum(Target)
+    mod.faltante = array(NA, dim = c(66,76,faltante))
+    
+    # PRUEBA: QUE PASA CUANDO NO HAY MODELO ESA SEMANA
+    if (sum(Stdt)==0){
+      print(paste("La semana ",Startweek[1]," no tiene el modelo",ModelNombre))
+      
+      modelo_objetivo = mod.faltante
+    }else{
+      print(paste("La semana ",Startweek[1]," le faltan dias del modelo",ModelNombre))
+      
+      modelo_objetivo = abind(ModeloObjetivo,mod.faltante)
+    }
+  }
+  
+  # Si el modelo esta completo no hacer nada
+  if (sum(Target)==Dias) {
+    modelo_objetivo = ModeloObjetivo
+  }
+  return(modelo_objetivo)
+}

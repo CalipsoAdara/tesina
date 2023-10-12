@@ -162,7 +162,7 @@ n_eff = array(n_eff, dim = c(66,76,4))
 t = (acc * sqrt(n_eff - 2)) / sqrt(1-acc^2)
 
 # Significancia de 0.05 y grados de libertad 
-critc = qt(p=0.95, df = trunc(n_eff))
+critc = qt(p=0.95, df = trunc(n_eff-2))
 test = t < critc
 
 

@@ -20,7 +20,7 @@ library("grid")
 source("/home/lucia.castro/tesina/funciones.R")
 
 # Path a donde guardar los archivos
-savepath = "/home/lucia.castro/SubX_processed_Rdata/model"
+savepath = "/home/lucia.castro/SubX_processed_Rdata/model/viernes"
 
 # Seteo el directorio
 setwd(savepath)
@@ -40,14 +40,14 @@ for (m in 1:nmodels) {
 }
 
 # MME
-targetdateMME <- readRDS(paste0("./viernes/targetdate_MME_OA.rds"))
+targetdateMME <- readRDS(paste0("./targetdate_MME_OA.rds"))
 sabadosMME <- dimnames(targetdateMME)$startdate
 
 # MJO
 # Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmmOA.rds")
+df_rmm <- readRDS("../MJO/df_rmmOA.rds")
 
-df_eventos <- readRDS("./MJO/df_eventosOA.rds")
+df_eventos <- readRDS("../MJO/df_eventosOA.rds")
 fechas_act <- as.character(df_rmm$DATE)
 
 # Busco que sabados coinciden con las fechas de MJO activos
@@ -67,8 +67,8 @@ predicmjo <- EnsamblesPredictiblidad(Modelos=MODELOS,
                                        StdtMod=startdateMODELOS, 
                                        FechEnsam = sabMJO,
                                        TgdtEnsam = targetdateMMEMJO,
-                                       FilePath = "./viernes/MJO/predic/act")
-saveRDS(predicmjo , "./viernes/MJO/predic/predictmjo.rds")
+                                       FilePath = "./MJO/predic/act2")
+saveRDS(predicmjo , "./MJO/predic/predictmjo2.rds")
 
 #----------- VERSION ANTERIOR
 for (model in 1:nmodels) {
@@ -291,7 +291,7 @@ saveRDS(predictibilidad, "./MJO/predic/predictnomjo.rds")
 
 # MJO
 # Cargo los datos de eventos
-df_rmm <- readRDS("./MJO/df_rmmOA.rds")
+df_rmm <- readRDS("../MJO/df_rmmOA.rds")
 df_rmm <- data.table(df_rmm)
 
 # Vector Bin
@@ -300,10 +300,11 @@ bin = levels(df_rmm$Bin)
 for (b in bin) {
   
   # Obtengo las fases correspondientes a ese bin
-  f1 = substr(b,5,5)
-  f2 = substr(b,6,6)
+  f1 = as.numeric(substr(b,5,5))
+  f2 = as.numeric(substr(b,6,6))
   # Fechas de ese bin
-  fechas_bin <- df_rmm[Bin==b,.(DATE)]
+  #fechas_bin <- df_rmm[Bin==b,.(DATE)]
+  fechas_bin <- df_rmm[FASE==f1|FASE==f2,.(DATE)]
   fechas_bin <- as.character(fechas_bin$DATE)
   
   # Busco que sabados coinciden con las fechas del bin
@@ -317,10 +318,10 @@ for (b in bin) {
                           StdtMod=startdateMODELOS, 
                           FechEnsam = sabBin,
                           TgdtEnsam = targetdateMMEBIN,
-                          FilePath = paste0("./viernes/MJO/predicBin/bin",b))
+                          FilePath = paste0("./MJO/predicBin/FI",b))
   
   # Guardo
-  saveRDS(predic_bin, paste0("./viernes/MJO/predicBin/predic_bin",b,".rds"))
+  saveRDS(predic_bin, paste0("./MJO/predicBin/predic_FI",b,".rds"))
   
   
 }
@@ -332,11 +333,11 @@ for (b in bin) {
 # SI ES ACT - TOTAL DONDE SEA POSITIVO ----------> APORTA MJO
 
 # cargo predictibilidad no activa
-predtotal <- readRDS("./viernes/MJO/predic/predictnomjo.rds")
+predtotal <- readRDS("./MJO/predic/predictnomjo.rds")
 
 for (b in bin) {
   # Cargo datos de predictibilidad del bin
-  predbin <- readRDS(paste0("./viernes/MJO/predicBin/predic_bin",b,".rds"))
+  predbin <- readRDS(paste0("./MJO/predicBin/predic_FI",b,".rds"))
   
   # Resto
   pred_diff <- predbin*100 - predtotal*100
@@ -351,15 +352,15 @@ for (b in bin) {
   colnames(df) <- c("x","y","week","z")
   
   # Si se desea cambiar week por semanas
-  #df = WeeksToSemanas(DF = df, Col = "week")
+  df = WeeksToSemanas(DF = df, Col = "week")
   
   # grafico 
   fase = paste("Fases",substr(b,5,5),"y",substr(b,6,6))
   g<-GraphDiscreteMultiple(Data=df,Breaks = seq(-40,40,10),Label = "p.p.",Paleta = "RdBu",Direccion = -1)
-  #g <- g + ggtitle(paste0("Predictibilidad SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Abr)"))
-  g <- g + ggtitle(paste0("Predictability SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Apr)"))
+  g <- g + ggtitle(paste0("Predictibilidad SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Abr)"))
+  #g <- g + ggtitle(paste0("Predictability SubX MJO ACT - INACT \n",fase," T2MA (99-14, Oct-Apr)"))
   
-  ggsave(filename = paste0("./viernes/MJO/predicBin/predic_in_diff",b,".png"),plot=g,width = 10, height = 4)
+  ggsave(filename = paste0("./MJO/predicBin/predic_es2_diff",b,".png"),plot=g,width = 10, height = 4)
 }
 
 
